@@ -1,0 +1,46 @@
+{
+  "name": "my-pc-app",
+  "version": "1.0.0",
+  "description": "PC Parts Price Comparison Platform",
+  "private": true,
+  "workspaces": [
+    "web",
+    "mobile",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:mobile\" \"npm run dev:shared\"",
+    "dev:web": "cd web && npm run dev",
+    "dev:mobile": "cd mobile && npx expo start",
+    "dev:shared": "cd shared && npm run dev",
+    "build": "npm run build:shared && npm run build:web",
+    "build:shared": "cd shared && npm run build",
+    "build:web": "cd web && npm run build",
+    "lint": "npm run lint:web && npm run lint:mobile",
+    "lint:web": "cd web && npm run lint",
+    "lint:mobile": "cd mobile && npm run lint || true",
+    "type-check": "npm run type-check:web && npm run type-check:shared",
+    "type-check:web": "cd web && npx tsc --noEmit",
+    "type-check:shared": "cd shared && npx tsc --noEmit",
+    "clean": "npm run clean:shared && npm run clean:web",
+    "clean:shared": "cd shared && npm run clean",
+    "clean:web": "cd web && rm -rf .next",
+    "install:all": "npm install && cd shared && npm install && cd ../web && npm install && cd ../mobile && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
+  "keywords": [
+    "pc-parts",
+    "price-comparison",
+    "react-native",
+    "nextjs",
+    "affiliate",
+    "ecommerce"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "react-native": "^0.80.2"
+  }
+}
