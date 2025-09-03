@@ -182,15 +182,15 @@ interface AppState {
   // Component data
   components: PCComponent[];
   builds: PCBuild[];
-  
+
   // Search and filter state
   searchQuery: string;
   selectedCategory: string | null;
   isLoading: boolean;
-  
+
   // UI state
   activeTab: 'search' | 'builds' | 'deals' | 'profile';
-  
+
   // Actions
   setSearchQuery: (query: string) => void;
   setSelectedCategory: (category: string | null) => void;
@@ -210,74 +210,74 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectedCategory: null,
   isLoading: false,
   activeTab: 'search',
-  
+
   // Actions
   setSearchQuery: (query: string) => set({ searchQuery: query }),
-  
+
   setSelectedCategory: (category: string | null) => set({ selectedCategory: category }),
-  
+
   setActiveTab: (tab: 'search' | 'builds' | 'deals' | 'profile') => set({ activeTab: tab }),
-  
+
   searchComponents: async (query: string) => {
     set({ isLoading: true });
-    
+
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
-    
+
     const { components } = get();
     const filteredComponents = components.filter(component =>
       component.name.toLowerCase().includes(query.toLowerCase()) ||
       component.brand.toLowerCase().includes(query.toLowerCase()) ||
       component.category.toLowerCase().includes(query.toLowerCase())
     );
-    
+
     set({ isLoading: false });
     return filteredComponents;
   },
-  
+
   getComponentsByCategory: async (category: string) => {
     set({ isLoading: true });
-    
+
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 300));
-    
+
     const { components } = get();
     const filteredComponents = components.filter(component =>
       component.category.toLowerCase() === category.toLowerCase()
     );
-    
+
     set({ isLoading: false });
     return filteredComponents;
   },
-  
+
   getDealsOfTheDay: async () => {
     set({ isLoading: true });
-    
+
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 400));
-    
+
     const { components } = get();
     // Return components with good discounts (>= 15%)
     const dealsComponents = components.filter(component =>
       component.offers.some(offer => offer.discount && offer.discount >= 15)
     );
-    
+
     set({ isLoading: false });
     return dealsComponents;
   },
-  
+
   getAllBuilds: async () => {
     set({ isLoading: true });
-    
+
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 350));
-    
+
     const { builds } = get();
-    
+
     set({ isLoading: false });
     return builds;
   },
-  
+
   getComponentById: (id: string) => {
     const { components } = get();
     return components.find(component => component.id === id);

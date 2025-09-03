@@ -33,21 +33,21 @@ export const queryKeys = {
   componentsByCategory: (category: string) => ['components', 'category', category],
   componentById: (id: string) => ['components', 'detail', id],
   componentOffers: (componentId: string) => ['components', componentId, 'offers'],
-  
+
   // Deals and pricing
   todayDeals: () => ['deals', 'today'],
   trendingComponents: () => ['components', 'trending'],
-  
+
   // Builds
   builds: () => ['builds'],
   buildById: (id: string) => ['builds', id],
   buildPrice: (components: string[]) => ['builds', 'price', components],
   buildCompatibility: (components: string[]) => ['builds', 'compatibility', components],
-  
+
   // User data
   priceAlerts: () => ['user', 'priceAlerts'],
   searchHistory: () => ['user', 'searchHistory'],
-  
+
   // System
   apiHealth: () => ['system', 'health'],
 } as const;

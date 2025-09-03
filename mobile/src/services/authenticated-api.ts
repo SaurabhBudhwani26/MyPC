@@ -1,7 +1,7 @@
 // Authenticated API service for making requests that require JWT tokens
 export class AuthenticatedApiService {
   private getAuthToken: (() => Promise<string | null>) | null = null;
-  
+
   // Set the token getter function
   setTokenGetter(tokenGetter: () => Promise<string | null>) {
     this.getAuthToken = tokenGetter;
@@ -10,7 +10,7 @@ export class AuthenticatedApiService {
   // Make authenticated fetch request
   async authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
     const token = await this.getAuthToken?.();
-    
+
     const headers = {
       'Content-Type': 'application/json',
       ...(options.headers || {}),
@@ -39,7 +39,7 @@ export class AuthenticatedApiService {
       console.log('📝 Response status:', response.status);
       const data = await response.json();
       console.log('📝 Response data:', JSON.stringify(data, null, 2));
-      
+
       if (!response.ok) {
         console.log('❌ Response not OK:', response.status, data);
         return { success: false, message: data.message || 'Failed to create build' };
@@ -48,7 +48,7 @@ export class AuthenticatedApiService {
       // Backend returns: { success: true, data: { build: {...} } }
       let build = data.data?.build || data.build || data.data;
       console.log('🏗️ Extracted build:', build);
-      
+
       if (!build) {
         console.log('⚠️ No build found in response. Full response:', data);
         return { success: false, message: 'Build data not found in response' };
@@ -74,7 +74,7 @@ export class AuthenticatedApiService {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         return { success: false, message: data.message || 'Failed to update build' };
       }
@@ -94,20 +94,20 @@ export class AuthenticatedApiService {
     try {
       const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.29.22:3001/api';
       const url = `${API_BASE_URL}/pc-builder/builds/${buildId}/components`;
-      
+
       console.log('🚀 API Request: POST', url);
       console.log('📤 Request payload:', JSON.stringify(component, null, 2));
-      
+
       const response = await this.authenticatedFetch(url, {
         method: 'POST',
         body: JSON.stringify(component),
       });
-      
+
       console.log('📊 Response status:', response.status);
-      
+
       const data = await response.json();
       console.log('📥 Response data:', JSON.stringify(data, null, 2));
-      
+
       if (!response.ok) {
         console.error('❌ API Error:', response.status, data);
         return { success: false, message: data.message || 'Failed to add component' };
@@ -128,7 +128,7 @@ export class AuthenticatedApiService {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         return { success: false, message: data.message || 'Failed to remove component' };
       }
@@ -146,7 +146,7 @@ export class AuthenticatedApiService {
       const response = await this.authenticatedFetch(`${API_BASE_URL}/pc-builder/builds?page=${page}&limit=${limit}`);
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         return { success: false, message: data.message || 'Failed to fetch builds' };
       }
@@ -167,7 +167,7 @@ export class AuthenticatedApiService {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         return { success: false, message: data.message || 'Failed to add to wishlist' };
       }
@@ -187,7 +187,7 @@ export class AuthenticatedApiService {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         return { success: false, message: data.message || 'Failed to remove from wishlist' };
       }
@@ -205,7 +205,7 @@ export class AuthenticatedApiService {
       const response = await this.authenticatedFetch(`${API_BASE_URL}/pc-builder/wishlist`);
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         return { success: false, message: data.message || 'Failed to fetch wishlist' };
       }

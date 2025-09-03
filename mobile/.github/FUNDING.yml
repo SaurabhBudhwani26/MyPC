@@ -1,0 +1,30 @@
+# GitHub Sponsors Configuration for MyPC App
+# Supporting open-source PC building tools for the Indian community
+
+# Buy Me a Coffee - Direct support for development
+# Help keep MyPC ad-free and community-focused
+buy_me_a_coffee: saurabhbudhwani
+
+# GitHub Sponsors - Official GitHub sponsorship
+# Enable recurring support for continuous development
+github: saurabhbudhwani
+
+# Custom URLs for additional support options
+# Direct donation links for flexible contribution methods
+custom: ['https://mypc.app/donate', 'https://paypal.me/saurabhbudhwani']
+
+# Configuration Notes:
+# - Buy Me a Coffee: One-time donations, perfect for small contributions
+# - GitHub Sponsors: Monthly recurring support, ideal for ongoing development
+# - Custom URLs: Alternative payment methods and direct donations
+# 
+# MyPC Philosophy:
+# We believe in ad-free, user-focused software. Your support helps us:
+# ✅ Keep the app completely ad-free
+# ✅ Add more retailer integrations
+# ✅ Improve search speed and performance
+# ✅ Develop new features based on community feedback
+# ✅ Maintain reliable infrastructure
+#
+# Every contribution, no matter the size, helps build better PC building tools
+# for the Indian community. Thank you for supporting open-source development! ❤️

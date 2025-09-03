@@ -95,7 +95,7 @@ export function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
         ...credentials,
         phoneNumber: credentials.phoneNumber?.trim() || undefined,
       });
-      
+
       if (!result.success) {
         Alert.alert('Signup Failed', result.message || 'Please try again');
       }
@@ -106,11 +106,11 @@ export function SignupScreen({ onSwitchToLogin }: SignupScreenProps) {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

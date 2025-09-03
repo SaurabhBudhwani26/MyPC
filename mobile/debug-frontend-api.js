@@ -9,9 +9,9 @@ async function testFrontendAPICall() {
 
   // Import the affiliate service
   const { affiliateService } = require('./src/services/affiliate-service');
-  
+
   console.log('\n🔍 Testing exact frontend API call...\n');
-  
+
   try {
     // Simulate the exact call from PCBuilderTab for CPU category
     const searchOptions = {
@@ -20,13 +20,13 @@ async function testFrontendAPICall() {
       sortBy: 'popular',
       limit: 60 // page 1 with extra results
     };
-    
+
     console.log('📤 searchComponents call with options:', searchOptions);
     const results = await affiliateService.searchComponents(searchOptions);
-    
-    console.log(`\n📊 Final Results:`);
+
+    console.log('\n📊 Final Results:');
     console.log(`- Total results: ${results.length}`);
-    
+
     if (results.length > 0) {
       // Check source breakdown
       const sourceCounts = {};
@@ -34,9 +34,9 @@ async function testFrontendAPICall() {
         const retailer = comp.offers?.[0]?.retailer || 'Unknown';
         sourceCounts[retailer] = (sourceCounts[retailer] || 0) + 1;
       });
-      
+
       console.log('🏪 Source breakdown:', sourceCounts);
-      
+
       console.log('\n📦 First 5 results:');
       results.slice(0, 5).forEach((comp, index) => {
         const offer = comp.offers?.[0];
@@ -48,7 +48,7 @@ async function testFrontendAPICall() {
     } else {
       console.log('❌ No results returned!');
     }
-    
+
   } catch (error) {
     console.error('❌ Error:', error);
   }

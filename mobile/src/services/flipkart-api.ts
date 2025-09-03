@@ -71,17 +71,17 @@ class FlipkartAPIService {
 
     try {
       console.log(`🔍 Searching Flipkart for: "${query}" (fetching ${pages} pages)`);
-      
+
       let allComponents: PCComponent[] = [];
-      
+
       // Fetch multiple pages for more results
       for (let page = 1; page <= pages; page++) {
         console.log(`📄 Fetching page ${page} of ${pages}...`);
-        
+
         const searchUrl = new URL(`${this.config.baseUrl}/product-search`);
         searchUrl.searchParams.append('q', query);
         searchUrl.searchParams.append('page', page.toString());
-        
+
         if (category) {
           searchUrl.searchParams.append('category', this.mapToFlipkartCategory(category));
         }
@@ -124,7 +124,7 @@ class FlipkartAPIService {
           console.log(`📭 Page ${page}: No products found`);
         }
       }
-      
+
       console.log(`✨ Final Flipkart result: ${allComponents.length} total PC components from ${pages} pages`);
       return allComponents;
 
@@ -158,7 +158,7 @@ class FlipkartAPIService {
       }
 
       const product: FlipkartProductResponse = await response.json();
-      
+
       if (this.isPCComponent(product.title)) {
         return this.transformFlipkartProduct(product);
       }
@@ -195,7 +195,7 @@ class FlipkartAPIService {
 
     const category = this.extractCategory(product.title);
     const brand = this.extractBrand(product.title, product.brand);
-    
+
     return {
       id: product.pid,
       name: product.title,
@@ -226,7 +226,7 @@ class FlipkartAPIService {
       'ryzen', 'core', 'geforce', 'radeon', 'ddr4', 'ddr5', 'nvme', 'sata',
       'atx', 'micro atx', 'mini itx', 'water cooling', 'air cooling', 'thermal paste'
     ];
-    
+
     const titleLower = title.toLowerCase();
     return pcKeywords.some(keyword => titleLower.includes(keyword));
   }
@@ -234,7 +234,7 @@ class FlipkartAPIService {
   private mapToFlipkartCategory(category: string): string {
     const categoryMap: { [key: string]: string } = {
       'CPU': 'computers',
-      'GPU': 'computers', 
+      'GPU': 'computers',
       'RAM': 'computers',
       'Motherboard': 'computers',
       'Storage': 'computers',
@@ -242,7 +242,7 @@ class FlipkartAPIService {
       'Case': 'computers',
       'Cooling': 'computers',
     };
-    
+
     return categoryMap[category] || 'computers';
   }
 
@@ -264,8 +264,8 @@ class FlipkartAPIService {
 
   private extractBrand(title: string): string {
     const commonBrands = [
-      'AMD', 'Intel', 'NVIDIA', 'ASUS', 'MSI', 'Gigabyte', 'ASRock', 
-      'Corsair', 'G.Skill', 'Kingston', 'Samsung', 'Western Digital', 
+      'AMD', 'Intel', 'NVIDIA', 'ASUS', 'MSI', 'Gigabyte', 'ASRock',
+      'Corsair', 'G.Skill', 'Kingston', 'Samsung', 'Western Digital',
       'Seagate', 'Cooler Master', 'Thermaltake', 'NZXT', 'Fractal Design'
     ];
 
@@ -302,7 +302,7 @@ class FlipkartAPIService {
     if (percentMatch) {
       return parseInt(percentMatch[1]);
     }
-    
+
     // For absolute discounts, we'll calculate percentage later if original price is available
     return 0;
   }
@@ -315,7 +315,7 @@ class FlipkartAPIService {
 
     // Extract from title
     const commonBrands = [
-      'AMD', 'Intel', 'NVIDIA', 'ASUS', 'MSI', 'Gigabyte', 'ASRock', 
+      'AMD', 'Intel', 'NVIDIA', 'ASUS', 'MSI', 'Gigabyte', 'ASRock',
       'Corsair', 'G.Skill', 'Kingston', 'Samsung', 'Western Digital', 'WD',
       'Seagate', 'Cooler Master', 'Thermaltake', 'NZXT', 'Fractal Design',
       'Antec', 'be quiet!', 'Seasonic', 'EVGA', 'Zotac', 'Sapphire', 'XFX'
@@ -334,20 +334,20 @@ class FlipkartAPIService {
   private extractSpecifications(title: string, description: string): Record<string, any> {
     const specs: Record<string, any> = {};
     const text = `${title} ${description}`.toLowerCase();
-    
+
     // Extract common specs
     const ghzMatch = text.match(/(\d+\.?\d*)\s*ghz/i);
     if (ghzMatch) specs.clockSpeed = `${ghzMatch[1]} GHz`;
-    
+
     const memoryMatch = text.match(/(\d+)\s*gb.*?(ddr\d+)/i);
     if (memoryMatch) {
       specs.memory = `${memoryMatch[1]}GB`;
       specs.memoryType = memoryMatch[2].toUpperCase();
     }
-    
+
     const coreMatch = text.match(/(\d+)[-\s]?core/i);
     if (coreMatch) specs.cores = parseInt(coreMatch[1]);
-    
+
     const threadMatch = text.match(/(\d+)[-\s]?thread/i);
     if (threadMatch) specs.threads = parseInt(threadMatch[1]);
 

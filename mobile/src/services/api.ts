@@ -56,7 +56,7 @@ class ApiService {
   }): Promise<PCComponent[]> {
     try {
       console.log(`🔍 Searching backend for: ${query}`);
-      
+
       const params = new URLSearchParams();
       params.append('query', query);
       if (filters?.category) params.append('category', filters.category);
@@ -64,9 +64,9 @@ class ApiService {
       if (filters?.maxPrice) params.append('maxPrice', filters.maxPrice.toString());
       if (filters?.brand) params.append('brand', filters.brand);
       if (filters?.limit) params.append('limit', filters.limit.toString());
-      
+
       const response = await apiClient.get(`/components/search?${params.toString()}`);
-      
+
       if (response.data.success && response.data.data) {
         console.log(`📦 Backend returned ${response.data.data.components.length} components`);
         return response.data.data.components;
@@ -82,8 +82,8 @@ class ApiService {
 
   // Paginated search for infinite scroll using multi-source affiliate service
   async searchComponentsPaginated(
-    query: string, 
-    page: number = 1, 
+    query: string,
+    page: number = 1,
     filters?: {
       category?: string;
       minPrice?: number;
@@ -99,12 +99,12 @@ class ApiService {
     try {
       // Use multi-source affiliate service (Amazon + Flipkart + EarnKaro)
       const { affiliateService } = await import('./affiliate-service');
-      
+
       const resultsPerPage = 20;
       const startIndex = (page - 1) * resultsPerPage;
-      
+
       console.log(`🔍 Multi-source paginated search: "${query}" - Page ${page}`);
-      
+
       // Get results from all sources combined
       const searchOptions = {
         query,
@@ -116,25 +116,25 @@ class ApiService {
         sortBy: 'popular' as const,
         limit: resultsPerPage * Math.max(page, 3) // Get more results for pagination
       };
-      
+
       const allResults = await affiliateService.searchComponents(searchOptions);
-      
+
       // Apply brand filter if specified
       let filteredResults = allResults;
       if (filters?.brand) {
-        filteredResults = allResults.filter(comp => 
+        filteredResults = allResults.filter(comp =>
           comp.brand?.toLowerCase().includes(filters.brand!.toLowerCase())
         );
         console.log(`🏷️ After brand filter: ${filteredResults.length} components`);
       }
-      
+
       // Calculate pagination
       const totalComponents = filteredResults.length;
       const paginatedComponents = filteredResults.slice(startIndex, startIndex + resultsPerPage);
       const hasMore = startIndex + resultsPerPage < totalComponents;
-      
+
       console.log(`📦 Page ${page}: Showing ${paginatedComponents.length}/${totalComponents} components from Amazon + Flipkart + EarnKaro`);
-      
+
       // Log source breakdown
       const sourceCounts = paginatedComponents.reduce((acc, comp) => {
         const retailer = comp.offers?.[0]?.retailer || 'Unknown';
@@ -142,14 +142,14 @@ class ApiService {
         return acc;
       }, {} as Record<string, number>);
       console.log(`📊 Source breakdown for page ${page}:`, sourceCounts);
-      
+
       return {
         components: paginatedComponents,
         totalComponents,
         hasMore,
         currentPage: page
       };
-      
+
     } catch (error) {
       console.error(`❌ Error in multi-source paginated search (page ${page}):`, error);
       return {
@@ -174,13 +174,13 @@ class ApiService {
   async getComponentsByCategory(category: string): Promise<PCComponent[]> {
     try {
       console.log(`🎯 Fetching backend components for category: ${category}`);
-      
+
       const params = new URLSearchParams();
       params.append('category', category);
       params.append('limit', '50'); // Get more results for category browsing
-      
+
       const response = await apiClient.get(`/components/search?${params.toString()}`);
-      
+
       if (response.data.success && response.data.data) {
         console.log(`📦 Backend returned ${response.data.data.components.length} components for category: ${category}`);
         return response.data.data.components;
@@ -216,10 +216,10 @@ class ApiService {
     }
   }
 
-  async validateBuildCompatibility(components: string[]): Promise<{ 
-    compatible: boolean; 
-    issues: string[]; 
-    recommendations: string[] 
+  async validateBuildCompatibility(components: string[]): Promise<{
+    compatible: boolean;
+    issues: string[];
+    recommendations: string[]
   }> {
     try {
       const response = await apiClient.post('/builds/validate', { components });
@@ -233,10 +233,10 @@ class ApiService {
   // Get Today's Deals from Backend
   async getTodayDeals(): Promise<ComponentOffer[]> {
     console.log('🎯 Fetching today\'s deals from backend...');
-    
+
     try {
       const response = await apiClient.get('/deals/today');
-      
+
       if (response.data.success && response.data.data) {
         const deals = response.data.data.deals || [];
         console.log(`🎉 Backend returned ${deals.length} deals`);
@@ -260,18 +260,18 @@ class ApiService {
       return null;
     }
   }
-  
+
   // Generate affiliate link when Buy Now is clicked
   async generateAffiliateLink(originalUrl: string): Promise<string> {
     try {
       const { affiliateService } = await import('./affiliate-service');
-      
+
       console.log('💰 Converting to affiliate link:', originalUrl);
       const affiliateLinks = await affiliateService.convertLinksToAffiliate([originalUrl]);
-      
+
       const affiliateUrl = affiliateLinks[originalUrl] || originalUrl;
       console.log('✅ Generated affiliate link:', affiliateUrl);
-      
+
       return affiliateUrl;
     } catch (error) {
       console.error('Error generating affiliate link:', error);
@@ -341,7 +341,7 @@ class ApiService {
       }
     ];
 
-    return mockComponents.filter(component => 
+    return mockComponents.filter(component =>
       component.name.toLowerCase().includes(query.toLowerCase()) ||
       component.category.toLowerCase().includes(query.toLowerCase())
     );
@@ -349,7 +349,7 @@ class ApiService {
 
   private getMockCategoryResults(category: string): PCComponent[] {
     const allMockComponents = this.getMockSearchResults('');
-    return allMockComponents.filter(component => 
+    return allMockComponents.filter(component =>
       component.category.toLowerCase() === category.toLowerCase()
     );
   }
@@ -375,10 +375,10 @@ class ApiService {
       }
     ];
   }
-  
+
   private getSimpleMockDeals(): ComponentOffer[] {
     const mockDeals: ComponentOffer[] = [];
-    
+
     // 15 Amazon deals
     for (let i = 0; i < 15; i++) {
       mockDeals.push({
@@ -400,7 +400,7 @@ class ApiService {
         }
       });
     }
-    
+
     // 15 Flipkart deals
     for (let i = 0; i < 15; i++) {
       mockDeals.push({
@@ -422,7 +422,7 @@ class ApiService {
         }
       });
     }
-    
+
     // Sort by discount (highest first)
     return mockDeals.sort((a, b) => (b.discount || 0) - (a.discount || 0));
   }

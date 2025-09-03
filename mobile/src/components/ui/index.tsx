@@ -1,9 +1,9 @@
 import React, { forwardRef } from 'react';
-import { 
-  Text, 
-  TouchableOpacity, 
-  View, 
-  TextInput as RNTextInput, 
+import {
+  Text,
+  TouchableOpacity,
+  View,
+  TextInput as RNTextInput,
   ActivityIndicator,
   ViewStyle,
   TextStyle,
@@ -37,7 +37,7 @@ export const Button = forwardRef<TouchableOpacity, ButtonProps>(({
   ...props
 }, ref) => {
   const baseClasses = 'flex-row items-center justify-center rounded-xl font-medium transition-all active:scale-95';
-  
+
   const variantClasses = {
     primary: 'bg-primary-600 shadow-soft active:bg-primary-700',
     secondary: 'bg-gray-100 active:bg-gray-200 border border-gray-200',
@@ -74,9 +74,9 @@ export const Button = forwardRef<TouchableOpacity, ButtonProps>(({
       {...props}
     >
       {loading && (
-        <ActivityIndicator 
-          size="small" 
-          color={variant === 'secondary' || variant === 'ghost' ? '#374151' : '#ffffff'} 
+        <ActivityIndicator
+          size="small"
+          color={variant === 'secondary' || variant === 'ghost' ? '#374151' : '#ffffff'}
           style={{ marginRight: 8 }}
         />
       )}
@@ -95,14 +95,14 @@ interface CardProps {
   onPress?: () => void;
 }
 
-export const Card: React.FC<CardProps> = ({ 
-  children, 
-  variant = 'default', 
+export const Card: React.FC<CardProps> = ({
+  children,
+  variant = 'default',
   className = '',
-  onPress 
+  onPress
 }) => {
   const baseClasses = 'rounded-2xl p-4 bg-white';
-  
+
   const variantClasses = {
     default: 'border border-gray-100 shadow-soft',
     elevated: 'shadow-medium',
@@ -181,14 +181,14 @@ interface BadgeProps {
   className?: string;
 }
 
-export const Badge: React.FC<BadgeProps> = ({ 
-  children, 
-  variant = 'gray', 
+export const Badge: React.FC<BadgeProps> = ({
+  children,
+  variant = 'gray',
   size = 'md',
-  className = '' 
+  className = ''
 }) => {
   const baseClasses = 'rounded-full font-medium';
-  
+
   const variantClasses = {
     primary: 'bg-primary-100 text-primary-800',
     success: 'bg-success-100 text-success-800',
@@ -218,13 +218,13 @@ interface SkeletonProps {
   className?: string;
 }
 
-export const Skeleton: React.FC<SkeletonProps> = ({ 
-  width = '100%', 
-  height = '20px', 
-  className = '' 
+export const Skeleton: React.FC<SkeletonProps> = ({
+  width = '100%',
+  height = '20px',
+  className = ''
 }) => {
   return (
-    <StyledView 
+    <StyledView
       className={`bg-gray-200 rounded animate-pulse ${className}`}
       style={{ width, height }}
     />
@@ -239,11 +239,11 @@ interface AvatarProps {
   className?: string;
 }
 
-export const Avatar: React.FC<AvatarProps> = ({ 
-  source, 
-  size = 'md', 
+export const Avatar: React.FC<AvatarProps> = ({
+  source,
+  size = 'md',
   fallback,
-  className = '' 
+  className = ''
 }) => {
   const sizeClasses = {
     sm: 'w-8 h-8',
@@ -278,9 +278,9 @@ interface DividerProps {
   className?: string;
 }
 
-export const Divider: React.FC<DividerProps> = ({ 
-  orientation = 'horizontal', 
-  className = '' 
+export const Divider: React.FC<DividerProps> = ({
+  orientation = 'horizontal',
+  className = ''
 }) => {
   const orientationClasses = {
     horizontal: 'h-px w-full',
@@ -314,15 +314,15 @@ interface StackProps {
   className?: string;
 }
 
-export const Stack: React.FC<StackProps> = ({ 
-  children, 
-  direction = 'column', 
+export const Stack: React.FC<StackProps> = ({
+  children,
+  direction = 'column',
   spacing = 4,
-  className = '' 
+  className = ''
 }) => {
   const directionClass = direction === 'row' ? 'flex-row' : 'flex-col';
   const spacingClass = direction === 'row' ? `space-x-${spacing}` : `space-y-${spacing}`;
-  
+
   return (
     <StyledView className={`${directionClass} ${spacingClass} ${className}`}>
       {children}

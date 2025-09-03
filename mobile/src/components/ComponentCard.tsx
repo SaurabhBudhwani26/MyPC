@@ -10,14 +10,14 @@ interface ComponentCardProps {
 
 export function ComponentCard({ component, onPress }: ComponentCardProps) {
   const { theme } = useTheme();
-  
+
   // Safety check for offers array
   if (!component.offers || component.offers.length === 0) {
     console.warn('ComponentCard: No offers available for component:', component.name);
     return null;
   }
 
-  const bestOffer = component.offers.reduce((best, current) => 
+  const bestOffer = component.offers.reduce((best, current) =>
     current.price < best.price ? current : best
   );
 
@@ -34,10 +34,10 @@ export function ComponentCard({ component, onPress }: ComponentCardProps) {
     try {
       console.log('🔗 Opening affiliate link for:', component.name);
       console.log('🌐 URL:', bestOffer.url);
-      
+
       // Try to open the affiliate URL
       const supported = await Linking.canOpenURL(bestOffer.url);
-      
+
       if (supported) {
         await Linking.openURL(bestOffer.url);
         console.log('✅ Successfully opened affiliate link');
@@ -60,7 +60,7 @@ export function ComponentCard({ component, onPress }: ComponentCardProps) {
   const getCategoryEmoji = (category: string) => {
     const emojiMap: { [key: string]: string } = {
       'CPU': '🧠',
-      'GPU': '🎮', 
+      'GPU': '🎮',
       'RAM': '💾',
       'Motherboard': '🔌',
       'Storage': '💽',
@@ -76,7 +76,7 @@ export function ComponentCard({ component, onPress }: ComponentCardProps) {
       <View style={styles.header}>
         <View style={styles.imageContainer}>
           {component.imageUrl ? (
-            <Image 
+            <Image
               source={{ uri: component.imageUrl }}
               style={styles.productImage}
               resizeMode="contain"
@@ -111,7 +111,7 @@ export function ComponentCard({ component, onPress }: ComponentCardProps) {
       <View style={styles.footer}>
         <Text style={styles.store}>{bestOffer.retailer}</Text>
         <Text style={styles.stock}>
-          {bestOffer.availability === "in_stock" ? '✅ In Stock' : '❌ Out of Stock'}
+          {bestOffer.availability === 'in_stock' ? '✅ In Stock' : '❌ Out of Stock'}
         </Text>
       </View>
 
@@ -121,7 +121,7 @@ export function ComponentCard({ component, onPress }: ComponentCardProps) {
           +{component.offers.length - 1} more store{component.offers.length > 2 ? 's' : ''}
         </Text>
       )}
-      
+
       {/* Tap to shop indicator */}
       <View style={styles.shopIndicator}>
         <Text style={styles.shopText}>Tap to shop • Earn rewards</Text>
@@ -129,7 +129,7 @@ export function ComponentCard({ component, onPress }: ComponentCardProps) {
       </View>
     </TouchableOpacity>
   );
-};
+}
 
 const getStyles = (theme: any) => StyleSheet.create({
   // Modern Card Design

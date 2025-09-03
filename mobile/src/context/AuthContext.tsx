@@ -77,13 +77,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         AsyncStorage.getItem('user'),
         AsyncStorage.getItem('tokens')
       ]);
-      
+
       if (userData) {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
         console.log('👤 User loaded from storage:', parsedUser.name);
       }
-      
+
       if (tokenData) {
         const parsedTokens = JSON.parse(tokenData);
         setTokens(parsedTokens);
@@ -122,16 +122,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (credentials: LoginCredentials): Promise<{ success: boolean; message?: string }> => {
     setIsLoading(true);
-    
+
     try {
       if (!credentials.email || !credentials.password) {
         return { success: false, message: 'Please fill in all fields' };
       }
-      
+
       if (!isValidEmail(credentials.email)) {
         return { success: false, message: 'Please enter a valid email address' };
       }
-      
+
       // Make API call to backend
       console.log('🚀 Attempting login with backend...');
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -141,13 +141,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         },
         body: JSON.stringify(credentials),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok || !data.success) {
         return { success: false, message: data.message || 'Login failed' };
       }
-      
+
       // Extract user and tokens from response
       const userData: User = {
         id: data.data.user._id,
@@ -162,20 +162,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           newsletter: data.data.user.preferences?.newsletter ?? false,
         },
       };
-      
+
       const tokenData: AuthTokens = {
         accessToken: data.data.tokens.accessToken,
         refreshToken: data.data.tokens.refreshToken,
         expiresAt: data.data.tokens.expiresAt,
       };
-      
+
       setUser(userData);
       setTokens(tokenData);
       await saveAuthToStorage(userData, tokenData);
-      
+
       console.log('✅ User logged in successfully:', userData.name);
       return { success: true };
-      
+
     } catch (error) {
       console.error('Login error:', error);
       return { success: false, message: 'Network error. Please check your connection.' };
@@ -186,25 +186,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signup = async (credentials: SignupCredentials): Promise<{ success: boolean; message?: string }> => {
     setIsLoading(true);
-    
+
     try {
       // Validate input
       if (!credentials.name || !credentials.email || !credentials.password) {
         return { success: false, message: 'Please fill in all required fields' };
       }
-      
+
       if (!isValidEmail(credentials.email)) {
         return { success: false, message: 'Please enter a valid email address' };
       }
-      
+
       if (credentials.password.length < 6) {
         return { success: false, message: 'Password must be at least 6 characters' };
       }
-      
+
       if (credentials.name.length < 2) {
         return { success: false, message: 'Name must be at least 2 characters' };
       }
-      
+
       // Make API call to backend
       console.log('🚀 Attempting signup with backend...');
       const response = await fetch(`${API_BASE_URL}/auth/signup`, {
@@ -214,13 +214,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         },
         body: JSON.stringify(credentials),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok || !data.success) {
         return { success: false, message: data.message || 'Signup failed' };
       }
-      
+
       // Extract user and tokens from response
       const userData: User = {
         id: data.data.user._id,
@@ -235,20 +235,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           newsletter: data.data.user.preferences?.newsletter ?? false,
         },
       };
-      
+
       const tokenData: AuthTokens = {
         accessToken: data.data.tokens.accessToken,
         refreshToken: data.data.tokens.refreshToken,
         expiresAt: data.data.tokens.expiresAt,
       };
-      
+
       setUser(userData);
       setTokens(tokenData);
       await saveAuthToStorage(userData, tokenData);
-      
+
       console.log('🎉 User signed up successfully:', userData.name);
       return { success: true };
-      
+
     } catch (error) {
       console.error('Signup error:', error);
       return { success: false, message: 'Network error. Please check your connection.' };
@@ -263,23 +263,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('🔑 No tokens available');
         return null;
       }
-      
+
       // Check if token is expired
       const now = new Date();
       const expiresAt = new Date(tokens.expiresAt);
-      
+
       if (now >= expiresAt) {
         console.log('🔑 Access token expired, attempting refresh...');
         return await refreshAccessToken();
       }
-      
+
       return tokens.accessToken;
     } catch (error) {
       console.error('Error getting access token:', error);
       return null;
     }
   };
-  
+
   const refreshAccessToken = async (): Promise<string | null> => {
     try {
       if (!tokens?.refreshToken) {
@@ -287,7 +287,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await logout();
         return null;
       }
-      
+
       const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
         method: 'POST',
         headers: {
@@ -295,26 +295,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         },
         body: JSON.stringify({ refreshToken: tokens.refreshToken }),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok || !data.success) {
         console.log('🔑 Token refresh failed, logging out');
         await logout();
         return null;
       }
-      
+
       const newTokenData: AuthTokens = {
         accessToken: data.accessToken,
         refreshToken: data.refreshToken || tokens.refreshToken,
         expiresAt: data.expiresAt,
       };
-      
+
       setTokens(newTokenData);
       if (user) {
         await saveAuthToStorage(user, newTokenData);
       }
-      
+
       console.log('🔑 Access token refreshed successfully');
       return newTokenData.accessToken;
     } catch (error) {
@@ -340,7 +340,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.warn('Failed to notify backend about logout:', error);
         }
       }
-      
+
       setUser(null);
       setTokens(null);
       await removeAuthFromStorage();
@@ -352,7 +352,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const updateProfile = async (updates: Partial<User>) => {
     if (!user || !tokens) return;
-    
+
     try {
       const updatedUser = { ...user, ...updates };
       setUser(updatedUser);

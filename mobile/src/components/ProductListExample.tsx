@@ -53,13 +53,13 @@ export const ProductListExample: React.FC<ProductListExampleProps> = ({
 
   const handleProductPress = async (product: PCComponent) => {
     // Find the best offer (lowest price)
-    const bestOffer = product.offers.reduce((best, current) => 
+    const bestOffer = product.offers.reduce((best, current) =>
       current.price < best.price ? current : best
     );
 
     // Check if this is already an affiliate link
-    if (bestOffer.url.includes('earnkaro.com') || 
-        bestOffer.url.includes('affid=') || 
+    if (bestOffer.url.includes('earnkaro.com') ||
+        bestOffer.url.includes('affid=') ||
         bestOffer.url.includes('affiliate')) {
       // Already an affiliate link, open directly
       openLink(bestOffer.url, product.name);
@@ -72,18 +72,18 @@ export const ProductListExample: React.FC<ProductListExampleProps> = ({
 
   const convertAndOpenLink = async (originalUrl: string, product: PCComponent) => {
     setConvertingLinks(prev => new Set(prev).add(product.id));
-    
+
     try {
       // Convert the link using EarnKaro
       const affiliateLink = await affiliateService.convertLinksToAffiliate([originalUrl]);
       const convertedUrl = affiliateLink[originalUrl];
-      
+
       if (convertedUrl && convertedUrl !== originalUrl) {
         console.log(`✅ Converted: ${originalUrl} → ${convertedUrl}`);
-        
+
         // Update the product's offer with the affiliate link
         updateProductOfferUrl(product.id, originalUrl, convertedUrl);
-        
+
         // Open the affiliate link
         openLink(convertedUrl, product.name);
       } else {
@@ -104,12 +104,12 @@ export const ProductListExample: React.FC<ProductListExampleProps> = ({
   };
 
   const updateProductOfferUrl = (productId: string, originalUrl: string, affiliateUrl: string) => {
-    setProducts(prevProducts => 
+    setProducts(prevProducts =>
       prevProducts.map(product => {
         if (product.id === productId) {
           return {
             ...product,
-            offers: product.offers.map(offer => 
+            offers: product.offers.map(offer =>
               offer.url === originalUrl ? { ...offer, url: affiliateUrl } : offer
             )
           };
@@ -134,44 +134,44 @@ export const ProductListExample: React.FC<ProductListExampleProps> = ({
   };
 
   const renderProduct = ({ item: product }: { item: PCComponent }) => {
-    const bestOffer = product.offers.reduce((best, current) => 
+    const bestOffer = product.offers.reduce((best, current) =>
       current.price < best.price ? current : best
     );
-    
+
     const isConverting = convertingLinks.has(product.id);
     const retailerInfo = affiliateService.getRetailerInfo(bestOffer.retailer);
-    
+
     // Check if it's already an affiliate link
-    const isAffiliateLink = bestOffer.url.includes('earnkaro.com') || 
-                           bestOffer.url.includes('affid=') || 
+    const isAffiliateLink = bestOffer.url.includes('earnkaro.com') ||
+                           bestOffer.url.includes('affid=') ||
                            bestOffer.url.includes('affiliate');
 
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.productCard}
         onPress={() => handleProductPress(product)}
         disabled={isConverting}
       >
-        <Image 
+        <Image
           source={{ uri: product.imageUrl || 'https://via.placeholder.com/150' }}
           style={styles.productImage}
           resizeMode="contain"
         />
-        
+
         <View style={styles.productInfo}>
           <Text style={styles.productName} numberOfLines={2}>
             {product.name}
           </Text>
-          
+
           <Text style={styles.productBrand}>
             {product.brand} • {product.category}
           </Text>
-          
+
           <View style={styles.priceContainer}>
             <Text style={styles.currentPrice}>
               {affiliateService.formatPrice(bestOffer.price)}
             </Text>
-            
+
             {bestOffer.originalPrice && bestOffer.originalPrice > bestOffer.price && (
               <>
                 <Text style={styles.originalPrice}>
@@ -183,17 +183,17 @@ export const ProductListExample: React.FC<ProductListExampleProps> = ({
               </>
             )}
           </View>
-          
+
           <View style={styles.retailerContainer}>
             <Text style={styles.retailerEmoji}>{retailerInfo.logo}</Text>
             <Text style={styles.retailerName}>{bestOffer.retailer}</Text>
-            
+
             {isAffiliateLink && (
               <View style={styles.affiliateBadge}>
                 <Text style={styles.affiliateText}>💰 Affiliate</Text>
               </View>
             )}
-            
+
             {isConverting && (
               <View style={styles.convertingContainer}>
                 <ActivityIndicator size="small" color="#4CAF50" />
@@ -201,7 +201,7 @@ export const ProductListExample: React.FC<ProductListExampleProps> = ({
               </View>
             )}
           </View>
-          
+
           {product.rating && (
             <View style={styles.ratingContainer}>
               <Text style={styles.rating}>⭐ {product.rating.toFixed(1)}</Text>
@@ -212,7 +212,7 @@ export const ProductListExample: React.FC<ProductListExampleProps> = ({
               )}
             </View>
           )}
-          
+
           {bestOffer.cashback && (
             <Text style={styles.cashback}>
               💰 {bestOffer.cashback} Cashback
@@ -242,7 +242,7 @@ export const ProductListExample: React.FC<ProductListExampleProps> = ({
           {products.length} results found
         </Text>
       </View>
-      
+
       <FlatList
         data={products}
         renderItem={renderProduct}

@@ -70,7 +70,7 @@ export function useApiHealth() {
 // Price Alert Creation Mutation
 export function useCreatePriceAlert() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: ({ componentId, targetPrice }: { componentId: string; targetPrice: number }) =>
       apiService.createPriceAlert(componentId, targetPrice),
@@ -87,22 +87,22 @@ export function useCreatePriceAlert() {
 // Search with debouncing and caching optimization
 export function useDebouncedSearch(query: string, delay: number = 500) {
   const [debouncedQuery, setDebouncedQuery] = useState(query);
-  
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(query);
     }, delay);
-    
+
     return () => clearTimeout(timer);
   }, [query, delay]);
-  
+
   return useSearchComponents(debouncedQuery, debouncedQuery.trim().length > 2);
 }
 
 // Prefetch utility hooks
 export function usePrefetchComponents() {
   const queryClient = useQueryClient();
-  
+
   const prefetchCategory = (category: string) => {
     queryClient.prefetchQuery({
       queryKey: queryKeys.componentsByCategory(category),
@@ -110,7 +110,7 @@ export function usePrefetchComponents() {
       staleTime: 5 * 60 * 1000,
     });
   };
-  
+
   const prefetchComponentDetails = (componentId: string) => {
     queryClient.prefetchQuery({
       queryKey: queryKeys.componentById(componentId),
@@ -118,23 +118,23 @@ export function usePrefetchComponents() {
       staleTime: 10 * 60 * 1000,
     });
   };
-  
+
   return { prefetchCategory, prefetchComponentDetails };
 }
 
 // Background sync hook for keeping data fresh
 export function useBackgroundSync() {
   const queryClient = useQueryClient();
-  
+
   const syncAll = () => {
     // Invalidate all component-related queries to trigger background refetch
     queryClient.invalidateQueries({ queryKey: ['components'] });
     queryClient.invalidateQueries({ queryKey: ['deals'] });
   };
-  
+
   const syncDeals = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.todayDeals() });
   };
-  
+
   return { syncAll, syncDeals };
 }

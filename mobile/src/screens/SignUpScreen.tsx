@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
-  ActivityIndicator, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView 
+  ScrollView
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -54,8 +54,8 @@ export function SignUpScreen({ onNavigateToSignIn, onSignUpSuccess }: SignUpScre
   const styles = getStyles(theme);
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -125,8 +125,8 @@ export function SignUpScreen({ onNavigateToSignIn, onSignUpSuccess }: SignUpScre
             />
           </View>
 
-          <TouchableOpacity 
-            style={[styles.signUpButton, isLoading && styles.disabledButton]} 
+          <TouchableOpacity
+            style={[styles.signUpButton, isLoading && styles.disabledButton]}
             onPress={handleSignUp}
             disabled={isLoading}
           >

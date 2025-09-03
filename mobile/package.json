@@ -20,7 +20,9 @@
     "update:preview": "eas update --branch preview",
     "update:production": "eas update --branch production",
     "doctor": "npx expo-doctor",
-    "lint": "npx tsc --noEmit",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "type-check": "npx tsc --noEmit",
     "prebuild": "npx expo prebuild",
     "clean": "npx expo r -c"
   },
@@ -40,7 +42,14 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~19.0.10",
-    "typescript": "~5.8.3"
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.57.0",
+    "eslint-config-expo": "^7.0.0",
+    "@react-native/eslint-config": "^0.75.4",
+    "typescript": "~5.8.3",
+    "uri-js": "^4.4.1",
+    "client-only": "^0.0.1"
   },
   "private": true
 }
