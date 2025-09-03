@@ -19,6 +19,19 @@ const pcBuilderRoutes = require('./routes/pcBuilderRoutes');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Health check endpoint - MUST be first to avoid rate limiting
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'MyPC Backend API is running',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    port: process.env.PORT || 3001,
+    uptime: process.uptime()
+  });
+});
+
 // Connect to database
 connectDB();
 
@@ -63,25 +76,6 @@ const globalLimiter = rateLimit({
 
 app.use(globalLimiter);
 
-// Health check endpoint - should work even if DB is down
-app.get('/health', (req, res) => {
-  const mongoose = require('mongoose');
-  const dbStatus = mongoose.connection.readyState;
-  const dbStates = ['disconnected', 'connected', 'connecting', 'disconnecting'];
-  
-  res.status(200).json({
-    success: true,
-    message: 'MyPC Backend API is running',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    environment: process.env.NODE_ENV || 'development',
-    database: {
-      status: dbStates[dbStatus] || 'unknown',
-      connected: dbStatus === 1
-    },
-    port: process.env.PORT || 3001
-  });
-});
 
 // API Documentation
 app.use('/api-docs', serve, setup);
