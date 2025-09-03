@@ -9,7 +9,8 @@ import { SignUpScreen } from './src/screens/SignUpScreen';
 import { AppProvider, useAppContext } from './src/context/AppContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
-import { PCComponent } from './src/types';
+import { PCComponent } from './src/types/index';
+import { apiService } from './src/services/api';
 type TabType = 'builds' | 'deals' | 'profile';
 type AuthScreenType = 'signin' | 'signup';
 
@@ -201,34 +202,57 @@ function MainApp({ onAuthRequired }: { onAuthRequired: () => void }) {
     </ScrollView>
   );
 
-  // Function to load affiliate deals (moved outside render function)
+  // Function to load real deals from RapidAPI and EarnKaro
   const loadAffiliateDeals = async () => {
-    console.log('🔄 Starting to load affiliate deals...');
+    console.log('🎯 Starting real deals load from RapidAPI + EarnKaro...');
     setLoadingDeals(true);
     try {
-      // Import affiliate service dynamically to avoid import issues
+      // Import affiliate service to get real deals
       const { affiliateService } = await import('./src/services/affiliate-service');
-      console.log('✅ Affiliate service imported successfully');
       
-      const deals = await affiliateService.getBestDeals(undefined, 10);
-      console.log('📦 Received deals:', deals?.length || 0, 'items');
-      console.log('🎯 First deal:', deals?.[0]?.name || 'No deals found');
+      // Get best deals from all sources (Amazon, Flipkart, EarnKaro)
+      const dealsComponents = await affiliateService.getBestDeals('gaming', 30);
+      console.log(`📦 Received ${dealsComponents?.length || 0} real deals`);
       
-      setAffiliateDeals(deals || []);
+      if (Array.isArray(dealsComponents) && dealsComponents.length > 0) {
+        // Filter for deals with good discounts
+        const goodDeals = dealsComponents.filter(component => {
+          const bestOffer = component.offers?.[0];
+          return bestOffer && (bestOffer.discount || 0) > 5;
+        });
+        
+        setAffiliateDeals(goodDeals.length > 0 ? goodDeals : dealsComponents);
+        console.log(`✅ Successfully loaded ${goodDeals.length > 0 ? goodDeals.length : dealsComponents.length} real deals`);
+      } else {
+        console.log('⚠️ No deals received from affiliate service');
+        setAffiliateDeals([]);
+      }
     } catch (error) {
-      console.error('❌ Error loading affiliate deals:', error);
+      console.error('❌ Error loading real deals:', error);
+      setAffiliateDeals([]);
     } finally {
       setLoadingDeals(false);
-      console.log('✅ Loading deals completed');
     }
   };
 
-  // Load deals when tab is first viewed
+  // Load deals when tab is first viewed (with proper dependency array)
   useEffect(() => {
-    if (activeTab === 'deals' && affiliateDeals.length === 0) {
-      loadAffiliateDeals();
+    let isCancelled = false;
+    
+    if (activeTab === 'deals' && affiliateDeals.length === 0 && !loadingDeals) {
+      console.log('🎯 Deals tab activated, loading deals...');
+      loadAffiliateDeals().catch(error => {
+        if (!isCancelled) {
+          console.error('❌ Error in deals useEffect:', error);
+        }
+      });
     }
-  }, [activeTab]);
+    
+    // Cleanup function to prevent state updates on unmounted component
+    return () => {
+      isCancelled = true;
+    };
+  }, [activeTab, affiliateDeals.length, loadingDeals]);
 
   const renderDealsTab = () => {
 

@@ -94,7 +94,7 @@ export function PCBuilderTab(props: PCBuilderTabProps = {}) {
   const { onAuthRequired } = props;
   
   const { theme } = useTheme();
-const { getAccessToken, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { getAccessToken, isAuthenticated, isLoading: authLoading } = useAuth();
   
   const [currentBuild, setCurrentBuild] = useState<LocalPCBuild>(emptyBuild);
   const [isLoading, setIsLoading] = useState(false);
@@ -112,7 +112,7 @@ const { getAccessToken, isAuthenticated, isLoading: authLoading } = useAuth();
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   
   const COMPONENTS_PER_PAGE = 20;
-  const SEARCH_DEBOUNCE_DELAY = 5000; // 5 seconds
+  const SEARCH_DEBOUNCE_DELAY = 2000; // 2 seconds
 
   // Setup authentication and create new build when authentication is ready
   useEffect(() => {
@@ -334,6 +334,53 @@ if (result.success && result.build) {
     if (componentModel === searchTerm) score += 950;
     if (componentBrand === searchTerm) score += 900;
     
+    // ULTRA HIGH PRIORITY: Specific model + memory/storage pattern matching
+    // For queries like "5060 ti 16gb", "4070 12gb", "1tb ssd", "32gb ddr5"
+    const specificPatterns = [
+      // GPU with memory (e.g., "4070 12gb", "5060 ti 16gb")
+      { pattern: /(\d{4})\s*(ti|super)?\s*(\d+gb)/gi, boost: 1200 },
+      { pattern: /(rtx|gtx)\s*(\d{4})\s*(ti|super)?\s*(\d+gb)/gi, boost: 1100 },
+      { pattern: /(rx)\s*(\d{4})\s*(xt)?\s*(\d+gb)/gi, boost: 1100 },
+      
+      // RAM with capacity and type (e.g., "32gb ddr5", "16gb ddr4")
+      { pattern: /(\d+gb)\s*(ddr[45])/gi, boost: 1000 },
+      { pattern: /(\d+gb)\s*(ram|memory)/gi, boost: 800 },
+      
+      // Storage with capacity (e.g., "1tb ssd", "500gb nvme")
+      { pattern: /(\d+)(tb|gb)\s*(ssd|nvme|hdd)/gi, boost: 900 },
+      
+      // CPU with specific model (e.g., "i7 12700k", "ryzen 7 5800x")
+      { pattern: /(i[3579])\s*(\d{4,5}[a-z]*)/gi, boost: 1000 },
+      { pattern: /ryzen\s*([3579])\s*(\d{4}[a-z]*)/gi, boost: 1000 }
+    ];
+    
+    specificPatterns.forEach(({ pattern, boost }) => {
+      const searchMatches = searchTerm.match(pattern);
+      const componentMatches = componentName.match(pattern) || componentDescription.match(pattern);
+      
+      if (searchMatches && componentMatches) {
+        // Both search and component have the specific pattern - huge boost
+        score += boost;
+      } else if (searchMatches) {
+        // Search has specific pattern, check if component contains the parts
+        searchMatches.forEach(match => {
+          const matchParts = match.split(/\s+/);
+          let partMatches = 0;
+          matchParts.forEach(part => {
+            if (componentName.includes(part) || componentDescription.includes(part)) {
+              partMatches++;
+            }
+          });
+          
+          if (partMatches === matchParts.length) {
+            score += boost * 0.8; // Slightly lower boost if parts are scattered
+          } else if (partMatches > matchParts.length / 2) {
+            score += boost * 0.6; // Moderate boost for partial matches
+          }
+        });
+      }
+    });
+    
     // VERY HIGH PRIORITY: Exact model number matches (e.g., "7600x" in "Ryzen 5 7600X")
     const modelNumberRegex = /\b(\d+[a-z]*x?)\b/gi;
     const searchModelNumbers = (searchTerm.match(modelNumberRegex) || []).map(m => m.toLowerCase());
@@ -349,6 +396,22 @@ if (result.success && result.build) {
       });
     });
     
+    // HIGH PRIORITY: Enhanced GPU pattern matching with memory specs
+    const gpuPatterns = [
+      // NVIDIA patterns with memory
+      { pattern: /rtx\s*(\d{4})\s*(ti|super)?\s*(?:(\d+)gb)?/gi, boost: 750 },
+      { pattern: /gtx\s*(\d{4})\s*(ti|super)?\s*(?:(\d+)gb)?/gi, boost: 700 },
+      { pattern: /(\d{4})\s*(ti|super)/gi, boost: 650 }, // Just model + ti/super
+      
+      // AMD patterns with memory
+      { pattern: /rx\s*(\d{4})\s*(xt)?\s*(?:(\d+)gb)?/gi, boost: 750 },
+      { pattern: /radeon\s*rx\s*(\d{4})/gi, boost: 700 },
+      
+      // Memory-specific patterns
+      { pattern: /(\d+)gb\s*(vram|memory)/gi, boost: 600 },
+      { pattern: /(\d+)gb(?!.*ddr)/gi, boost: 400 } // GB without DDR (likely GPU memory)
+    ];
+    
     // HIGH PRIORITY: CPU-specific pattern matching for "Ryzen 5 7600X" style queries
     const cpuPatterns = [
       // AMD CPU patterns
@@ -356,13 +419,23 @@ if (result.success && result.build) {
       { pattern: /ryzen\s+(\d+[a-z]*x?)/gi, boost: 650 },
       // Intel CPU patterns
       { pattern: /core\s+i([3579])\s*-?\s*(\d+[a-z]*)/gi, boost: 700 },
-      { pattern: /i([3579])\s*-?\s*(\d+[a-z]*)/gi, boost: 650 },
-      // GPU patterns
-      { pattern: /rtx\s*(\d+[a-z]*)/gi, boost: 650 },
-      { pattern: /gtx\s*(\d+[a-z]*)/gi, boost: 600 },
-      { pattern: /rx\s*(\d+[a-z]*x?t?)/gi, boost: 650 }
+      { pattern: /i([3579])\s*-?\s*(\d+[a-z]*)/gi, boost: 650 }
     ];
     
+    // Apply GPU patterns
+    gpuPatterns.forEach(({ pattern, boost }) => {
+      const searchMatches = searchTerm.match(pattern);
+      if (searchMatches) {
+        searchMatches.forEach(match => {
+          if (componentName.includes(match.replace(/\s+/g, '\\s*')) || 
+              componentDescription.includes(match.replace(/\s+/g, '\\s*'))) {
+            score += boost;
+          }
+        });
+      }
+    });
+    
+    // Apply CPU patterns
     cpuPatterns.forEach(({ pattern, boost }) => {
       const searchMatches = searchTerm.match(pattern);
       if (searchMatches) {
@@ -370,6 +443,44 @@ if (result.success && result.build) {
           if (componentName.includes(match.replace(/\s+/g, '\\s*'))) {
             score += boost;
           }
+        });
+      }
+    });
+    
+    // VERY HIGH PRIORITY: Memory/Storage capacity matching
+    const capacityPatterns = [
+      // RAM capacity patterns
+      { pattern: /(\d+)gb\s*(ddr[45]|ram|memory)/gi, boost: 800 },
+      { pattern: /(\d+)gb(?=.*ram|.*memory|.*ddr)/gi, boost: 700 },
+      
+      // Storage capacity patterns  
+      { pattern: /(\d+)(tb|gb)\s*(ssd|nvme|hdd)/gi, boost: 800 },
+      { pattern: /(\d+)(tb|gb)(?=.*storage|.*drive)/gi, boost: 600 },
+      
+      // Speed patterns for RAM
+      { pattern: /(\d{4})mhz/gi, boost: 500 },
+      { pattern: /(\d{4})\s*(?:mhz)?\s*ddr/gi, boost: 550 }
+    ];
+    
+    capacityPatterns.forEach(({ pattern, boost }) => {
+      const searchMatches = searchTerm.match(pattern);
+      const componentMatches = (componentName + ' ' + componentDescription).match(pattern);
+      
+      if (searchMatches && componentMatches) {
+        searchMatches.forEach(searchMatch => {
+          componentMatches.forEach(componentMatch => {
+            if (searchMatch.toLowerCase() === componentMatch.toLowerCase()) {
+              score += boost; // Exact capacity match
+            } else {
+              // Extract numbers for comparison
+              const searchNum = parseInt(searchMatch.match(/\d+/)?.[0] || '0');
+              const componentNum = parseInt(componentMatch.match(/\d+/)?.[0] || '0');
+              
+              if (searchNum === componentNum) {
+                score += boost * 0.8; // Same number, different format
+              }
+            }
+          });
         });
       }
     });
@@ -1398,7 +1509,12 @@ const renderBuildSummary = () => {
                 <Image source={{ uri: item.imageUrl }} style={styles.optionImage} />
                 <View style={styles.optionDetails}>
                   <Text style={styles.optionName} numberOfLines={2}>{item.name || 'Unknown Product'}</Text>
-                  <Text style={styles.optionPrice}>₹{item.offers?.[0]?.price ? item.offers[0].price.toLocaleString() : '0'}</Text>
+                  <View style={styles.priceRow}>
+                    <Text style={styles.optionPrice}>₹{item.offers?.[0]?.price ? item.offers[0].price.toLocaleString() : '0'}</Text>
+                    <View style={styles.retailerBadge}>
+                      <Text style={styles.retailerText}>{item.offers?.[0]?.retailer || 'Unknown'}</Text>
+                    </View>
+                  </View>
                   <View style={styles.optionMeta}>
                     {item.rating && (
                       <Text style={styles.optionRating}>⭐ {item.rating}/5</Text>
@@ -1482,12 +1598,14 @@ const renderBuildSummary = () => {
 
   return (
     <View style={styles.container}>
+      <View style={styles.topPadding} />
       <FlatList
         data={componentCategories}
         keyExtractor={(item) => item.key}
         renderItem={({ item }) => renderComponentSlot(item)}
         showsVerticalScrollIndicator={false}
         ListFooterComponent={renderBuildSummary}
+        contentContainerStyle={styles.listContainer}
       />
 
       {renderComponentSelector()}
@@ -1499,6 +1617,13 @@ const getStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  topPadding: {
+    height: 20, // Add padding at the top to prevent overlap with header
+  },
+  listContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 100, // Extra padding at bottom for navigation
   },
   title: {
     fontSize: 24,
@@ -1774,10 +1899,29 @@ const getStyles = (theme: any) => StyleSheet.create({
     color: theme.colors.text,
     marginBottom: 4,
   },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
   optionPrice: {
     fontSize: 14,
     fontWeight: 'bold',
     color: theme.colors.success,
+  },
+  retailerBadge: {
+    backgroundColor: theme.isDark ? theme.colors.surfaceVariant : '#e5f3ff',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.isDark ? theme.colors.border : '#3b82f6',
+  },
+  retailerText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: theme.isDark ? '#ffffff' : '#3b82f6',
   },
   optionRating: {
     fontSize: 12,

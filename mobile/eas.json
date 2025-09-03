@@ -1,0 +1,73 @@
+{
+  "cli": {
+    "version": ">= 12.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "ios": {
+        "resourceClass": "m-medium",
+        "simulator": true,
+        "buildConfiguration": "Debug"
+      },
+      "android": {
+        "resourceClass": "medium",
+        "buildType": "apk"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "NODE_ENV": "staging",
+        "EXPO_PUBLIC_API_URL": "https://mypc-production.up.railway.app/api",
+        "EXPO_PUBLIC_DEBUG_MODE": "true",
+        "EXPO_PUBLIC_RAPIDAPI_KEY": "43f24a788cmsh4e88641db22aff0p131622jsna0a86ab2ca69",
+        "EXPO_PUBLIC_EARNKARO_API_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OGI1OTJlN2M4YzhhMTUxMzE4ZWQ0MjciLCJlYXJua2FybyI6IjQ1ODczMDEiLCJpYXQiOjE3NTY3MzAxMzF9.cIsLXDqmE59k4CLvSkMcWarqLF93DIA5q4LT7yWC8sI",
+        "EXPO_PUBLIC_EARNKARO_API_URL": "https://ekaro-api.affiliaters.in"
+      },
+      "ios": {
+        "resourceClass": "m-medium",
+        "buildConfiguration": "Release"
+      },
+      "android": {
+        "resourceClass": "medium",
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "env": {
+        "NODE_ENV": "production",
+        "EXPO_PUBLIC_API_URL": "https://mypc-production.up.railway.app/api",
+        "EXPO_PUBLIC_DEBUG_MODE": "false",
+        "EXPO_PUBLIC_RAPIDAPI_KEY": "43f24a788cmsh4e88641db22aff0p131622jsna0a86ab2ca69",
+        "EXPO_PUBLIC_EARNKARO_API_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OGI1OTJlN2M4YzhhMTUxMzE4ZWQ0MjciLCJlYXJua2FybyI6IjQ1ODczMDEiLCJpYXQiOjE3NTY3MzAxMzF9.cIsLXDqmE59k4CLvSkMcWarqLF93DIA5q4LT7yWC8sI",
+        "EXPO_PUBLIC_EARNKARO_API_URL": "https://ekaro-api.affiliaters.in"
+      },
+      "ios": {
+        "resourceClass": "m-medium",
+        "buildConfiguration": "Release"
+      },
+      "android": {
+        "resourceClass": "medium",
+        "buildType": "app-bundle"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "your-apple-id@example.com",
+        "ascAppId": "placeholder-app-store-connect-app-id",
+        "appleTeamId": "placeholder-apple-team-id"
+      },
+      "android": {
+        "serviceAccountKeyPath": "path/to/api-key.json",
+        "track": "internal"
+      }
+    }
+  }
+}

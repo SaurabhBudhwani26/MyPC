@@ -8,6 +8,8 @@ import {
   Switch,
   Alert,
   Image,
+  ToastAndroid,
+  Platform,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -76,32 +78,41 @@ export const ProfileTab: React.FC = () => {
     }
   }
 
+  const showComingSoonToast = (feature: string) => {
+    const message = `${feature} - Coming Soon! 🚀`;
+    if (Platform.OS === 'android') {
+      ToastAndroid.show(message, ToastAndroid.SHORT);
+    } else {
+      Alert.alert('Coming Soon', `${feature} feature will be available soon!`);
+    }
+  };
+
   const handleEditProfile = () => {
-    Alert.alert('Edit Profile', 'Profile editing feature coming soon!');
+    showComingSoonToast('Edit Profile');
   };
 
   const handleSavedBuilds = () => {
-    Alert.alert('Saved Builds', 'View your saved PC builds');
+    showComingSoonToast('Saved Builds');
   };
 
   const handlePriceAlerts = () => {
-    Alert.alert('Price Alerts', 'Manage your price alerts');
+    showComingSoonToast('Price Alerts');
   };
 
   const handleWishlist = () => {
-    Alert.alert('Wishlist', 'View your wishlist items');
+    showComingSoonToast('Wishlist');
   };
 
   const handleNotifications = () => {
-    Alert.alert('Notifications', 'Notification settings');
+    showComingSoonToast('Notifications');
   };
 
   const handleSupport = () => {
-    Alert.alert('Support', 'Contact our support team');
+    showComingSoonToast('Help & Support');
   };
 
   const handleAbout = () => {
-    Alert.alert('About', 'MyPC v1.0.0\nBuild your dream PC with the best prices');
+    Alert.alert('About MyPC', 'MyPC v1.0.0\n\nBuild your dream PC with the best prices from Amazon, Flipkart, and other retailers.\n\nDeveloped with ❤️ for PC enthusiasts.');
   };
 
   const handleLogout = () => {
@@ -187,7 +198,7 @@ export const ProfileTab: React.FC = () => {
             icon="📊"
             title="Order History"
             subtitle="Track your purchases"
-            onPress={() => Alert.alert('Order History', 'Feature coming soon!')}
+            onPress={() => showComingSoonToast('Order History')}
           />
         </View>
       </View>
@@ -220,13 +231,13 @@ export const ProfileTab: React.FC = () => {
             icon="🌍"
             title="Language"
             subtitle="English"
-            onPress={() => Alert.alert('Language', 'Language settings')}
+            onPress={() => showComingSoonToast('Language Settings')}
           />
           <ProfileItem
             icon="💰"
             title="Currency"
             subtitle="INR (₹)"
-            onPress={() => Alert.alert('Currency', 'Currency settings')}
+            onPress={() => showComingSoonToast('Currency Settings')}
           />
         </View>
       </View>
@@ -244,12 +255,12 @@ export const ProfileTab: React.FC = () => {
           <ProfileItem
             icon="📋"
             title="Terms of Service"
-            onPress={() => Alert.alert('Terms', 'Terms of service')}
+            onPress={() => showComingSoonToast('Terms of Service')}
           />
           <ProfileItem
             icon="🔒"
             title="Privacy Policy"
-            onPress={() => Alert.alert('Privacy', 'Privacy policy')}
+            onPress={() => showComingSoonToast('Privacy Policy')}
           />
           <ProfileItem
             icon="ℹ️"

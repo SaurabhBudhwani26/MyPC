@@ -4,6 +4,8 @@ export interface ComponentOffer {
   affiliateUrl?: string;
   id: string;
   componentId: string;
+  componentName?: string;
+  componentImage?: string;
   retailer: 'Amazon' | 'Flipkart' | 'Newegg' | 'MDComputers' | string;
   price: number;
   originalPrice?: number;
@@ -22,6 +24,9 @@ export interface ComponentOffer {
 }
 
 export interface PCComponent {
+  discount?: number;
+  url?: string;
+  price?: number;
   id: string;
   name: string;
   brand: string;
@@ -30,7 +35,7 @@ export interface PCComponent {
   description?: string;
   imageUrl?: string;
   specifications?: Record<string, any>;
-  offers?: ComponentOffer[];
+  offers: ComponentOffer[];
   averagePrice?: number;
   priceRange?: {
     min: number;

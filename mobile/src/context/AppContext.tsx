@@ -53,6 +53,9 @@ const mockComponents: PCComponent[] = [
         badges: []
       },
     ],
+    discount: 0,
+    url: '',
+    price: 0
   },
   {
     id: '2',
@@ -89,6 +92,9 @@ const mockComponents: PCComponent[] = [
         badges: []
       },
     ],
+    discount: 0,
+    url: '',
+    price: 0
   },
   {
     id: '3',
@@ -124,6 +130,9 @@ const mockComponents: PCComponent[] = [
         badges: []
       },
     ],
+    discount: 0,
+    url: '',
+    price: 0
   },
   {
     id: '4',
@@ -160,6 +169,9 @@ const mockComponents: PCComponent[] = [
         badges: []
       },
     ],
+    discount: 0,
+    url: '',
+    price: 0
   },
   {
     id: '5',
@@ -196,6 +208,9 @@ const mockComponents: PCComponent[] = [
         badges: []
       },
     ],
+    discount: 0,
+    url: '',
+    price: 0
   },
 ];
 

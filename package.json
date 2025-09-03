@@ -39,8 +39,5 @@
     "ecommerce"
   ],
   "author": "Your Name",
-  "license": "MIT",
-  "dependencies": {
-    "react-native": "^0.80.2"
-  }
+  "license": "MIT"
 }

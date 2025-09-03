@@ -1,0 +1,52 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Shadow filter -->
+    <filter id="dropshadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="8" flood-color="#000000" flood-opacity="0.3" stdDeviation="12"/>
+    </filter>
+  </defs>
+  
+  <!-- Rounded rectangle background -->
+  <rect width="1024" height="1024" rx="180" ry="180" fill="url(#bgGradient)"/>
+  
+  <!-- PC Monitor/Screen -->
+  <rect x="200" y="200" width="624" height="400" rx="40" ry="40" fill="#2d3748" filter="url(#dropshadow)"/>
+  <rect x="220" y="220" width="584" height="300" rx="20" ry="20" fill="#1a202c"/>
+  
+  <!-- Screen content - representing PC components -->
+  <rect x="260" y="260" width="120" height="80" rx="8" ry="8" fill="#667eea" opacity="0.8"/>
+  <rect x="400" y="260" width="120" height="80" rx="8" ry="8" fill="#48bb78" opacity="0.8"/>
+  <rect x="540" y="260" width="120" height="80" rx="8" ry="8" fill="#ed8936" opacity="0.8"/>
+  
+  <rect x="260" y="360" width="120" height="80" rx="8" ry="8" fill="#e53e3e" opacity="0.8"/>
+  <rect x="400" y="360" width="120" height="80" rx="8" ry="8" fill="#9f7aea" opacity="0.8"/>
+  <rect x="540" y="360" width="120" height="80" rx="8" ry="8" fill="#38b2ac" opacity="0.8"/>
+  
+  <!-- Monitor stand -->
+  <rect x="480" y="600" width="64" height="80" rx="8" ry="8" fill="#4a5568" filter="url(#dropshadow)"/>
+  <rect x="400" y="680" width="224" height="40" rx="20" ry="20" fill="#4a5568" filter="url(#dropshadow)"/>
+  
+  <!-- CPU Icon in center -->
+  <rect x="450" y="750" width="124" height="124" rx="12" ry="12" fill="#2d3748" filter="url(#dropshadow)"/>
+  <rect x="470" y="770" width="84" height="84" rx="8" ry="8" fill="#667eea"/>
+  
+  <!-- Circuit pattern on CPU -->
+  <g stroke="#ffffff" stroke-width="2" fill="none" opacity="0.7">
+    <path d="M490,790 L490,810 L510,810 L510,830 L530,830"/>
+    <path d="M530,790 L530,810 L510,810"/>
+    <path d="M490,820 L510,820 L510,840 L530,840"/>
+    <circle cx="500" cy="800" r="3" fill="#ffffff"/>
+    <circle cx="520" cy="800" r="3" fill="#ffffff"/>
+    <circle cx="500" cy="820" r="3" fill="#ffffff"/>
+    <circle cx="520" cy="820" r="3" fill="#ffffff"/>
+  </g>
+  
+  <!-- MyPC Text -->
+  <text x="512" y="950" font-family="Arial, sans-serif" font-size="48" font-weight="bold" text-anchor="middle" fill="#ffffff" opacity="0.9">MyPC</text>
+</svg>
