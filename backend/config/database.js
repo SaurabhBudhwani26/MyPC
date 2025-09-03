@@ -43,7 +43,14 @@ const connectDB = async () => {
 
   } catch (error) {
     console.error('Database connection failed:', error.message);
-    process.exit(1);
+    console.error('⚠️ Server will continue running without database connection');
+    console.error('🔄 Attempting to reconnect in 10 seconds...');
+    
+    // Retry connection after 10 seconds instead of crashing
+    setTimeout(() => {
+      console.log('🔄 Retrying database connection...');
+      connectDB();
+    }, 10000);
   }
 };
 

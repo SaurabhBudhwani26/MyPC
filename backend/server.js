@@ -63,14 +63,23 @@ const globalLimiter = rateLimit({
 
 app.use(globalLimiter);
 
-// Health check endpoint
+// Health check endpoint - should work even if DB is down
 app.get('/health', (req, res) => {
+  const mongoose = require('mongoose');
+  const dbStatus = mongoose.connection.readyState;
+  const dbStates = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+  
   res.status(200).json({
     success: true,
     message: 'MyPC Backend API is running',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    database: {
+      status: dbStates[dbStatus] || 'unknown',
+      connected: dbStatus === 1
+    },
+    port: process.env.PORT || 3001
   });
 });
 
