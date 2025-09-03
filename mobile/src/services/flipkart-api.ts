@@ -63,70 +63,61 @@ class FlipkartAPIService {
     }
   }
 
-  async searchProducts(query: string, category?: string, pages: number = 2): Promise<PCComponent[]> {
+  async searchProducts(query: string, category?: string, pages: number = 1): Promise<PCComponent[]> {
     if (!this.isConfigured) {
       console.log('🛒 Flipkart API not configured, skipping');
       return [];
     }
 
     try {
-      console.log(`🔍 Searching Flipkart for: "${query}" (fetching ${pages} pages)`);
+      console.log(`🔍 Searching Flipkart for: "${query}" (single page request)`);
 
-      let allComponents: PCComponent[] = [];
+      // Single API call for speed
+      const searchUrl = new URL(`${this.config.baseUrl}/product-search`);
+      searchUrl.searchParams.append('q', query);
+      searchUrl.searchParams.append('page', '1');
 
-      // Fetch multiple pages for more results
-      for (let page = 1; page <= pages; page++) {
-        console.log(`📄 Fetching page ${page} of ${pages}...`);
-
-        const searchUrl = new URL(`${this.config.baseUrl}/product-search`);
-        searchUrl.searchParams.append('q', query);
-        searchUrl.searchParams.append('page', page.toString());
-
-        if (category) {
-          searchUrl.searchParams.append('category', this.mapToFlipkartCategory(category));
-        }
-
-        console.log(`🌐 Making request to: ${searchUrl.toString()}`);
-
-        const response = await fetch(searchUrl.toString(), {
-          method: 'GET',
-          headers: {
-            'X-RapidAPI-Host': this.config.apiHost,
-            'X-RapidAPI-Key': this.config.apiKey,
-          },
-        });
-
-        console.log(`📊 API Response Status: ${response.status}`);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.log(`❌ Page ${page}: API Error Response:`, errorText);
-          continue;
-        }
-
-        const data: FlipkartSearchResponse = await response.json();
-        console.log(`📦 Raw API Response for page ${page}:`, {
-          success: data.success,
-          total_products: data.data?.total || 0,
-          products_returned: data.data?.products?.length || 0
-        });
-
-        if (data.success && data.data?.products) {
-          // Filter for PC components and convert to our format
-          const pcComponents = data.data.products
-            .filter(product => this.isPCComponent(product.title))
-            .map(product => this.transformFlipkartProduct(product));
-
-          console.log(`🗞️ Page ${page}: Filtered to ${pcComponents.length} PC components`);
-          allComponents = [...allComponents, ...pcComponents];
-          console.log(`📦 Page ${page}: Added ${pcComponents.length} components. Total: ${allComponents.length}`);
-        } else {
-          console.log(`📭 Page ${page}: No products found`);
-        }
+      if (category) {
+        searchUrl.searchParams.append('category', this.mapToFlipkartCategory(category));
       }
 
-      console.log(`✨ Final Flipkart result: ${allComponents.length} total PC components from ${pages} pages`);
-      return allComponents;
+      console.log(`🌐 Making request to: ${searchUrl.toString()}`);
+
+      const response = await fetch(searchUrl.toString(), {
+        method: 'GET',
+        headers: {
+          'X-RapidAPI-Host': this.config.apiHost,
+          'X-RapidAPI-Key': this.config.apiKey,
+        },
+      });
+
+      console.log(`📊 API Response Status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log(`❌ API Error Response:`, errorText);
+        return [];
+      }
+
+      const data: FlipkartSearchResponse = await response.json();
+      console.log(`📦 Raw API Response:`, {
+        success: data.success,
+        total_products: data.data?.total || 0,
+        products_returned: data.data?.products?.length || 0
+      });
+
+      if (!data.success || !data.data?.products) {
+        console.log(`📝 No products found from Flipkart`);
+        return [];
+      }
+
+      // Filter for PC components and convert to our format
+      const pcComponents = data.data.products
+        .filter(product => this.isPCComponent(product.title))
+        .map(product => this.transformFlipkartProduct(product));
+
+      console.log(`✨ Final Flipkart result: ${pcComponents.length} PC components`);
+      return pcComponents;
 
     } catch (error) {
       console.error('❌ Error searching Flipkart:', error);

@@ -69,7 +69,7 @@ async function searchAmazon(query: string): Promise<AmazonProduct[]> {
   return data.data?.products || [];
 }
 
-async function testEarnKaroAPI(): Promise<any> {
+async function testEarnKaroAPI(): Promise<unknown> {
   if (!process.env.EARNKARO_API_KEY || !process.env.EARNKARO_API_URL) {
     throw new Error('EarnKaro API not configured');
   }
@@ -100,7 +100,11 @@ export async function GET(request: NextRequest) {
   const testType = searchParams.get('test') || 'all';
 
   try {
-    const results: any = {
+    const results: {
+      query: string;
+      timestamp: string;
+      tests: Record<string, unknown>;
+    } = {
       query,
       timestamp: new Date().toISOString(),
       tests: {}

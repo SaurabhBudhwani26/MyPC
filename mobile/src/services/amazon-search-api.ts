@@ -67,7 +67,7 @@ class AmazonSearchAPIService {
     }
   }
 
-  async searchProducts(query: string, category?: string, maxPages: number = 3): Promise<PCComponent[]> {
+  async searchProducts(query: string, category?: string, maxPages: number = 1): Promise<PCComponent[]> {
     if (!this.isConfigured) {
       console.log('🛒 Amazon Search API not configured, skipping');
       return [];
@@ -93,75 +93,39 @@ class AmazonSearchAPIService {
     }
 
     try {
-      console.log(`🔍 Searching Amazon for: "${query}" (fetching ${maxPages} pages)`);
+      console.log(`🔍 Searching Amazon for: "${query}" (single page request)`);
 
-      let allComponents: PCComponent[] = [];
-      let totalProducts = 0;
+      // Single API call - no loops, no affiliate conversion for speed
+      const response = await this.performSearch(query, 1);
 
-      // Fetch multiple pages to get more results
-      for (let page = 1; page <= maxPages; page++) {
-        console.log(`📄 Fetching page ${page} of ${maxPages}...`);
-
-        try {
-          const response = await this.performSearch(query, page);
-
-          if (!response.data?.products || response.data.products.length === 0) {
-            console.log(`⚠️ No products found on page ${page}, stopping`);
-            break;
-          }
-
-          console.log(`✅ Page ${page}: Found ${response.data.products.length} products from Amazon`);
-          totalProducts = response.data.total_products || 0;
-
-          // Filter for PC components
-          const pcProducts = response.data.products.filter(product =>
-            this.isPCComponent(product.product_title)
-          );
-
-          console.log(`🖥️ Page ${page}: Filtered to ${pcProducts.length} PC components`);
-
-          if (pcProducts.length === 0) {
-            console.log(`⚠️ No PC components found on page ${page}, continuing to next page...`);
-            continue;
-          }
-
-          // Convert Amazon URLs to affiliate links for this batch
-          const productUrls = pcProducts.map(product => product.product_url);
-          console.log(`🔄 Page ${page}: Converting ${productUrls.length} URLs to affiliate links...`);
-
-          const affiliateLinks = await earnKaroAPIService.convertLinks(productUrls);
-
-          // Transform to PCComponent format
-          const components = pcProducts.map(product =>
-            this.transformAmazonProduct(product, affiliateLinks[product.product_url])
-          );
-
-          allComponents = [...allComponents, ...components];
-          console.log(`📦 Page ${page}: Added ${components.length} components. Total: ${allComponents.length}`);
-
-          // Small delay between requests to be respectful to the API
-          if (page < maxPages) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-
-        } catch (pageError) {
-          console.error(`❌ Error fetching page ${page}:`, pageError);
-
-          // If we get a rate limit error, stop fetching more pages
-          if (pageError.message && pageError.message.includes('429')) {
-            console.log('💸 Hit rate limit, stopping pagination');
-            this.quotaExceeded = true;
-            this.lastQuotaCheck = Date.now();
-            break;
-          }
-
-          // For other errors, continue to next page
-          continue;
-        }
+      if (!response.data?.products || response.data.products.length === 0) {
+        console.log(`⚠️ No products found from Amazon`);
+        return [];
       }
 
-      console.log(`✨ Final result: ${allComponents.length} total PC components from ${maxPages} pages (${totalProducts} total products available)`);
-      return allComponents;
+      console.log(`✅ Found ${response.data.products.length} products from Amazon`);
+      const totalProducts = response.data.total_products || 0;
+
+      // Filter for PC components
+      const pcProducts = response.data.products.filter(product =>
+        this.isPCComponent(product.product_title)
+      );
+
+      console.log(`🔥️ Filtered to ${pcProducts.length} PC components`);
+
+      if (pcProducts.length === 0) {
+        console.log(`⚠️ No PC components found`);
+        return [];
+      }
+
+      // Transform to PCComponent format WITHOUT affiliate links for speed
+      // Affiliate links will be added later by simple-deals-service
+      const components = pcProducts.map(product =>
+        this.transformAmazonProduct(product, product.product_url)
+      );
+
+      console.log(`✨ Final result: ${components.length} PC components (${totalProducts} total products available)`);
+      return components;
 
     } catch (error) {
       console.error('❌ Error searching Amazon products:', error);

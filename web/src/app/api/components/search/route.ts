@@ -48,7 +48,7 @@ interface PCComponent {
   averagePrice: number;
   priceRange: { min: number; max: number };
   lastUpdated: string;
-  specifications: Record<string, any>;
+  specifications: Record<string, string | number | boolean>;
   offers: ComponentOffer[];
 }
 
@@ -256,8 +256,8 @@ function extractModel(title: string): string {
   return modelMatch?.[0] || title.split(' ').slice(0, 3).join(' ');
 }
 
-function extractSpecifications(title: string): Record<string, any> {
-  const specs: Record<string, any> = {};
+function extractSpecifications(title: string): Record<string, string | number | boolean> {
+  const specs: Record<string, string | number | boolean> = {};
   const titleLower = title.toLowerCase();
   
   const ghzMatch = titleLower.match(/(\d+\.?\d*)\s*ghz/i);
