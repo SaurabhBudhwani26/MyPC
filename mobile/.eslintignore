@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Expo
+.expo/
+.expo-shared/
+web-build/
+dist/
+
+# Build outputs
+build/
+*.tsbuildinfo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Environment files
+.env*
+
+# Config files
+*.config.js
+*.config.ts
+babel.config.js
+metro.config.js
+
+# APK files
+*.apk
+
+# Documentation
+*.md
+
+# Assets
+assets/

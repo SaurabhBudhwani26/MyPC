@@ -34,7 +34,7 @@ const ProfileItem: React.FC<ProfileItemProps> = ({
   rightComponent,
 }) => {
   const { theme } = useTheme();
-  
+
   const styles = getStyles(theme);
 
   return (
@@ -143,9 +143,9 @@ export const ProfileTab: React.FC = () => {
         <Text style={styles.email}>{user?.email || 'user@email.com'}</Text>
         {user?.joinDate && (
           <Text style={styles.joinDate}>
-            Member since {new Date(user.joinDate).toLocaleDateString('en-US', { 
-              month: 'short', 
-              year: 'numeric' 
+            Member since {new Date(user.joinDate).toLocaleDateString('en-US', {
+              month: 'short',
+              year: 'numeric'
             })}
           </Text>
         )}

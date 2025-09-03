@@ -55,12 +55,12 @@ function AuthenticatedApp() {
   // Show authentication screens if user needs to authenticate
   if (!isAuthenticated || showAuth) {
     return authScreen === 'signin' ? (
-      <SignInScreen 
+      <SignInScreen
         onNavigateToSignUp={handleNavigateToSignUp}
         onSignInSuccess={handleSignInSuccess}
       />
     ) : (
-      <SignUpScreen 
+      <SignUpScreen
         onNavigateToSignIn={handleNavigateToSignIn}
         onSignUpSuccess={handleSignUpSuccess}
       />
@@ -87,7 +87,7 @@ function MainApp({ onAuthRequired }: { onAuthRequired: () => void }) {
     searchComponents,
     getComponentsByCategory,
   } = useAppContext();
-  
+
   const [searchResults, setSearchResults] = useState<PCComponent[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [affiliateDeals, setAffiliateDeals] = useState<PCComponent[]>([]);
@@ -122,10 +122,10 @@ function MainApp({ onAuthRequired }: { onAuthRequired: () => void }) {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>MyPC</Text>
       </View>
-      
+
       <View style={styles.tabContent}>
         <Text style={styles.sectionTitle}>Search PC Components</Text>
-      
+
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -142,7 +142,7 @@ function MainApp({ onAuthRequired }: { onAuthRequired: () => void }) {
           )}
         </TouchableOpacity>
       </View>
-      
+
       {showResults ? (
         <View style={styles.resultsContainer}>
           <View style={styles.resultsHeader}>
@@ -153,7 +153,7 @@ function MainApp({ onAuthRequired }: { onAuthRequired: () => void }) {
               <Text style={styles.clearResults}>Clear</Text>
             </TouchableOpacity>
           </View>
-          
+
           {searchResults.length > 0 ? (
             <FlatList
               data={searchResults}
@@ -173,8 +173,8 @@ function MainApp({ onAuthRequired }: { onAuthRequired: () => void }) {
         <View style={styles.categoriesContainer}>
           <Text style={styles.categoriesTitle}>Popular Categories</Text>
           {['CPU', 'GPU', 'RAM', 'Motherboard', 'Storage'].map((category) => (
-            <TouchableOpacity 
-              key={category} 
+            <TouchableOpacity
+              key={category}
               style={styles.categoryCard}
               onPress={() => handleCategoryPress(category)}
             >
@@ -195,7 +195,7 @@ function MainApp({ onAuthRequired }: { onAuthRequired: () => void }) {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>MyPC</Text>
       </View>
-      
+
       <PCBuilderTab onAuthRequired={() => {}} />
       {/* Extra bottom spacing */}
       <View style={{ height: 110 }} />
@@ -209,18 +209,18 @@ function MainApp({ onAuthRequired }: { onAuthRequired: () => void }) {
     try {
       // Import affiliate service to get real deals
       const { affiliateService } = await import('./src/services/affiliate-service');
-      
+
       // Get best deals from all sources (Amazon, Flipkart, EarnKaro)
       const dealsComponents = await affiliateService.getBestDeals('gaming', 30);
       console.log(`📦 Received ${dealsComponents?.length || 0} real deals`);
-      
+
       if (Array.isArray(dealsComponents) && dealsComponents.length > 0) {
         // Filter for deals with good discounts
         const goodDeals = dealsComponents.filter(component => {
           const bestOffer = component.offers?.[0];
           return bestOffer && (bestOffer.discount || 0) > 5;
         });
-        
+
         setAffiliateDeals(goodDeals.length > 0 ? goodDeals : dealsComponents);
         console.log(`✅ Successfully loaded ${goodDeals.length > 0 ? goodDeals.length : dealsComponents.length} real deals`);
       } else {
@@ -238,7 +238,7 @@ function MainApp({ onAuthRequired }: { onAuthRequired: () => void }) {
   // Load deals when tab is first viewed (with proper dependency array)
   useEffect(() => {
     let isCancelled = false;
-    
+
     if (activeTab === 'deals' && affiliateDeals.length === 0 && !loadingDeals) {
       console.log('🎯 Deals tab activated, loading deals...');
       loadAffiliateDeals().catch(error => {
@@ -247,7 +247,7 @@ function MainApp({ onAuthRequired }: { onAuthRequired: () => void }) {
         }
       });
     }
-    
+
     // Cleanup function to prevent state updates on unmounted component
     return () => {
       isCancelled = true;
@@ -262,10 +262,10 @@ function MainApp({ onAuthRequired }: { onAuthRequired: () => void }) {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>MyPC</Text>
         </View>
-        
+
         <View style={styles.tabContent}>
           <Text style={styles.sectionTitle}>Today's Best Deals 💰</Text>
-        
+
         {loadingDeals ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#3b82f6" />
@@ -303,7 +303,7 @@ function MainApp({ onAuthRequired }: { onAuthRequired: () => void }) {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>MyPC</Text>
       </View>
-      
+
       <ProfileTab />
       {/* Extra bottom spacing */}
       <View style={{ height: 80 }} />
@@ -324,12 +324,12 @@ function MainApp({ onAuthRequired }: { onAuthRequired: () => void }) {
   return (
     <View style={styles.container}>
       <StatusBar style={theme.isDark ? 'light' : 'dark'} />
-      
+
       {/* Scrollable Content with Header */}
       <View style={styles.content}>
         {renderContent()}
       </View>
-      
+
       {/* Bottom Navigation */}
       <View style={styles.bottomNav}>
         {[
@@ -351,7 +351,7 @@ function MainApp({ onAuthRequired }: { onAuthRequired: () => void }) {
             ]}>{tab.icon}</Text>
             <Text style={[
               styles.navLabel,
-              { 
+              {
                 color: activeTab === tab.key ? '#ffffff' : theme.colors.textMuted,
                 fontWeight: activeTab === tab.key ? '600' : 'normal'
               }

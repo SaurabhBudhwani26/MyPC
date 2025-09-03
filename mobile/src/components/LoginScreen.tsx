@@ -61,7 +61,7 @@ export function LoginScreen({ onSwitchToSignup }: LoginScreenProps) {
 
     try {
       const result = await login(credentials);
-      
+
       if (!result.success) {
         Alert.alert('Login Failed', result.message || 'Please try again');
       }
@@ -79,11 +79,11 @@ export function LoginScreen({ onSwitchToSignup }: LoginScreenProps) {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
       >

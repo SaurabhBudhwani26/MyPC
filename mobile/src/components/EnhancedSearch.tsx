@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
-  ActivityIndicator, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
   FlatList,
   Alert
 } from 'react-native';
-import { 
-  useDebouncedSearch, 
-  useComponentsByCategory, 
-  usePrefetchComponents 
+import {
+  useDebouncedSearch,
+  useComponentsByCategory,
+  usePrefetchComponents
 } from '../hooks/useComponents';
 import { ComponentCard } from './ComponentCard';
 import { PCComponent } from '../types';
@@ -25,22 +25,22 @@ export function EnhancedSearch({ onResultsChange }: EnhancedSearchProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [showResults, setShowResults] = useState(false);
-  
+
   const { prefetchCategory } = usePrefetchComponents();
-  
+
   // Debounced search with React Query
-  const { 
-    data: searchResults = [], 
-    isLoading: isSearching, 
+  const {
+    data: searchResults = [],
+    isLoading: isSearching,
     error: searchError,
     isFetching: isSearchFetching
   } = useDebouncedSearch(searchQuery, 500);
-  
+
   // Category-based search
-  const { 
-    data: categoryResults = [], 
+  const {
+    data: categoryResults = [],
     isLoading: isCategoryLoading,
-    error: categoryError 
+    error: categoryError
   } = useComponentsByCategory(selectedCategory, selectedCategory.length > 0);
 
   // Determine which results to show
@@ -69,7 +69,7 @@ export function EnhancedSearch({ onResultsChange }: EnhancedSearchProps) {
     setSelectedCategory(category);
     setSearchQuery(''); // Clear search query when browsing by category
     setShowResults(true);
-    
+
     // Prefetch related categories for better UX
     const relatedCategories = getRelatedCategories(category);
     relatedCategories.forEach(prefetchCategory);
@@ -96,7 +96,7 @@ export function EnhancedSearch({ onResultsChange }: EnhancedSearchProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>Search PC Components</Text>
-      
+
       {/* Search Input */}
       <View style={styles.searchContainer}>
         <TextInput
@@ -106,9 +106,9 @@ export function EnhancedSearch({ onResultsChange }: EnhancedSearchProps) {
           onChangeText={handleQueryChange}
           onSubmitEditing={handleSearch}
         />
-        <TouchableOpacity 
-          style={styles.searchButton} 
-          onPress={handleSearch} 
+        <TouchableOpacity
+          style={styles.searchButton}
+          onPress={handleSearch}
           disabled={showLoadingSpinner}
         >
           {showLoadingSpinner ? (
@@ -146,7 +146,7 @@ export function EnhancedSearch({ onResultsChange }: EnhancedSearchProps) {
           </TouchableOpacity>
         </View>
       )}
-      
+
       {showResults ? (
         <View style={styles.resultsContainer}>
           <View style={styles.resultsHeader}>
@@ -158,7 +158,7 @@ export function EnhancedSearch({ onResultsChange }: EnhancedSearchProps) {
               <Text style={styles.clearResults}>Clear</Text>
             </TouchableOpacity>
           </View>
-          
+
           {currentResults.length > 0 ? (
             <FlatList
               data={currentResults}
@@ -186,8 +186,8 @@ export function EnhancedSearch({ onResultsChange }: EnhancedSearchProps) {
         <View style={styles.categoriesContainer}>
           <Text style={styles.categoriesTitle}>Popular Categories</Text>
           {POPULAR_CATEGORIES.map((category) => (
-            <TouchableOpacity 
-              key={category} 
+            <TouchableOpacity
+              key={category}
               style={[
                 styles.categoryCard,
                 selectedCategory === category && styles.categoryCardActive

@@ -6,7 +6,7 @@ declare module 'react-native' {
   export interface ComponentType<P = any> {
     (props: P): JSX.Element | null;
   }
-  
+
   export const View: ComponentType<any>;
   export const Text: ComponentType<any>;
   export const ScrollView: ComponentType<any>;

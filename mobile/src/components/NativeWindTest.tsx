@@ -12,14 +12,14 @@ const NativeWindTest: React.FC = () => {
         <Text style={styles.subtitle}>
           Testing modern UI implementation
         </Text>
-        
+
         {/* Test if className works */}
         <View className="bg-blue-500 p-4 rounded-lg mb-4">
           <Text className="text-white text-center font-bold">
             If this has a blue background, NativeWind is working!
           </Text>
         </View>
-        
+
         {/* Fallback styled button */}
         <TouchableOpacity style={styles.button}>
           <Text style={styles.buttonText}>
@@ -27,7 +27,7 @@ const NativeWindTest: React.FC = () => {
           </Text>
         </TouchableOpacity>
       </View>
-      
+
       {/* Feature test cards */}
       <View style={styles.featureContainer}>
         <View style={[styles.featureCard, { backgroundColor: '#22c55e' }]}>

@@ -92,10 +92,10 @@ const componentCategories = [
 
 export function PCBuilderTab(props: PCBuilderTabProps = {}) {
   const { onAuthRequired } = props;
-  
+
   const { theme } = useTheme();
   const { getAccessToken, isAuthenticated, isLoading: authLoading } = useAuth();
-  
+
   const [currentBuild, setCurrentBuild] = useState<LocalPCBuild>(emptyBuild);
   const [isLoading, setIsLoading] = useState(false);
   const [showComponentSelector, setShowComponentSelector] = useState(false);
@@ -110,7 +110,7 @@ export function PCBuilderTab(props: PCBuilderTabProps = {}) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [totalComponents, setTotalComponents] = useState(0);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
-  
+
   const COMPONENTS_PER_PAGE = 20;
   const SEARCH_DEBOUNCE_DELAY = 2000; // 2 seconds
 
@@ -118,7 +118,7 @@ export function PCBuilderTab(props: PCBuilderTabProps = {}) {
   useEffect(() => {
     // Setup the token getter for authenticated API
     authenticatedApi.setTokenGetter(getAccessToken);
-    
+
     // Only create build when auth loading is complete
     if (!authLoading) {
       createNewBuild();
@@ -139,7 +139,7 @@ export function PCBuilderTab(props: PCBuilderTabProps = {}) {
     try {
       console.log('🏗️ Starting PC build creation...');
       console.log('🔐 Authentication status:', isAuthenticated);
-      
+
       // Check if user is authenticated - redirect to sign in if not
 if (!isAuthenticated) {
         console.log('❌ User not authenticated - redirecting to sign in');
@@ -213,7 +213,7 @@ if (result.success && result.build) {
     setSelectedCategory(category);
     setLoadingComponents(true);
     setShowComponentSelector(true);
-    
+
     // Reset pagination state
     setCurrentPage(1);
     setHasMoreComponents(true);
@@ -235,12 +235,12 @@ if (result.success && result.build) {
         1, // page 1
         { category: category }
       );
-      
+
       setAvailableComponents(result.components);
       setAllComponents(result.components); // Store for local search fallback
       setTotalComponents(result.totalComponents);
       setHasMoreComponents(result.hasMore);
-      
+
       console.log(`📦 Loaded ${result.components.length} components from page 1, total: ${result.totalComponents}, hasMore: ${result.hasMore}`);
     } catch (error) {
       console.error('❌ Error fetching components:', error);
@@ -273,19 +273,19 @@ if (result.success && result.build) {
         imageUrl: component.imageUrl || '',
         url: component.offers?.[0]?.url || ''
       };
-      
+
       console.log('📦 Component data being sent:', componentData);
-      
+
       const payload = {
         category: selectedCategory,
         componentId: componentData.id,
         component: componentData
       };
-      
+
       console.log('📤 API payload:', payload);
-      
+
       const result = await authenticatedApi.addComponentToBuild(currentBuild.id, payload);
-      
+
       console.log('📥 API result:', result);
 
       if (result.success && result.build) {
@@ -326,14 +326,14 @@ if (result.success && result.build) {
     const componentBrand = (component.brand || '').toLowerCase();
     const componentModel = (component.model || '').toLowerCase();
     const componentDescription = (component.description || '').toLowerCase();
-    
+
     let score = 0;
-    
+
     // ULTRA HIGH PRIORITY: Exact full matches (e.g., "ryzen 5 7600x" matches "AMD Ryzen 5 7600X")
     if (componentName === searchTerm) score += 1000;
     if (componentModel === searchTerm) score += 950;
     if (componentBrand === searchTerm) score += 900;
-    
+
     // ULTRA HIGH PRIORITY: Specific model + memory/storage pattern matching
     // For queries like "5060 ti 16gb", "4070 12gb", "1tb ssd", "32gb ddr5"
     const specificPatterns = [
@@ -341,23 +341,23 @@ if (result.success && result.build) {
       { pattern: /(\d{4})\s*(ti|super)?\s*(\d+gb)/gi, boost: 1200 },
       { pattern: /(rtx|gtx)\s*(\d{4})\s*(ti|super)?\s*(\d+gb)/gi, boost: 1100 },
       { pattern: /(rx)\s*(\d{4})\s*(xt)?\s*(\d+gb)/gi, boost: 1100 },
-      
+
       // RAM with capacity and type (e.g., "32gb ddr5", "16gb ddr4")
       { pattern: /(\d+gb)\s*(ddr[45])/gi, boost: 1000 },
       { pattern: /(\d+gb)\s*(ram|memory)/gi, boost: 800 },
-      
+
       // Storage with capacity (e.g., "1tb ssd", "500gb nvme")
       { pattern: /(\d+)(tb|gb)\s*(ssd|nvme|hdd)/gi, boost: 900 },
-      
+
       // CPU with specific model (e.g., "i7 12700k", "ryzen 7 5800x")
       { pattern: /(i[3579])\s*(\d{4,5}[a-z]*)/gi, boost: 1000 },
       { pattern: /ryzen\s*([3579])\s*(\d{4}[a-z]*)/gi, boost: 1000 }
     ];
-    
+
     specificPatterns.forEach(({ pattern, boost }) => {
       const searchMatches = searchTerm.match(pattern);
       const componentMatches = componentName.match(pattern) || componentDescription.match(pattern);
-      
+
       if (searchMatches && componentMatches) {
         // Both search and component have the specific pattern - huge boost
         score += boost;
@@ -371,7 +371,7 @@ if (result.success && result.build) {
               partMatches++;
             }
           });
-          
+
           if (partMatches === matchParts.length) {
             score += boost * 0.8; // Slightly lower boost if parts are scattered
           } else if (partMatches > matchParts.length / 2) {
@@ -380,12 +380,12 @@ if (result.success && result.build) {
         });
       }
     });
-    
+
     // VERY HIGH PRIORITY: Exact model number matches (e.g., "7600x" in "Ryzen 5 7600X")
     const modelNumberRegex = /\b(\d+[a-z]*x?)\b/gi;
     const searchModelNumbers = (searchTerm.match(modelNumberRegex) || []).map(m => m.toLowerCase());
     const componentModelNumbers = (componentName.match(modelNumberRegex) || []).map(m => m.toLowerCase());
-    
+
     searchModelNumbers.forEach(searchModel => {
       componentModelNumbers.forEach(componentModelNum => {
         if (componentModelNum === searchModel) {
@@ -395,23 +395,23 @@ if (result.success && result.build) {
         }
       });
     });
-    
+
     // HIGH PRIORITY: Enhanced GPU pattern matching with memory specs
     const gpuPatterns = [
       // NVIDIA patterns with memory
       { pattern: /rtx\s*(\d{4})\s*(ti|super)?\s*(?:(\d+)gb)?/gi, boost: 750 },
       { pattern: /gtx\s*(\d{4})\s*(ti|super)?\s*(?:(\d+)gb)?/gi, boost: 700 },
       { pattern: /(\d{4})\s*(ti|super)/gi, boost: 650 }, // Just model + ti/super
-      
+
       // AMD patterns with memory
       { pattern: /rx\s*(\d{4})\s*(xt)?\s*(?:(\d+)gb)?/gi, boost: 750 },
       { pattern: /radeon\s*rx\s*(\d{4})/gi, boost: 700 },
-      
+
       // Memory-specific patterns
       { pattern: /(\d+)gb\s*(vram|memory)/gi, boost: 600 },
       { pattern: /(\d+)gb(?!.*ddr)/gi, boost: 400 } // GB without DDR (likely GPU memory)
     ];
-    
+
     // HIGH PRIORITY: CPU-specific pattern matching for "Ryzen 5 7600X" style queries
     const cpuPatterns = [
       // AMD CPU patterns
@@ -421,20 +421,20 @@ if (result.success && result.build) {
       { pattern: /core\s+i([3579])\s*-?\s*(\d+[a-z]*)/gi, boost: 700 },
       { pattern: /i([3579])\s*-?\s*(\d+[a-z]*)/gi, boost: 650 }
     ];
-    
+
     // Apply GPU patterns
     gpuPatterns.forEach(({ pattern, boost }) => {
       const searchMatches = searchTerm.match(pattern);
       if (searchMatches) {
         searchMatches.forEach(match => {
-          if (componentName.includes(match.replace(/\s+/g, '\\s*')) || 
+          if (componentName.includes(match.replace(/\s+/g, '\\s*')) ||
               componentDescription.includes(match.replace(/\s+/g, '\\s*'))) {
             score += boost;
           }
         });
       }
     });
-    
+
     // Apply CPU patterns
     cpuPatterns.forEach(({ pattern, boost }) => {
       const searchMatches = searchTerm.match(pattern);
@@ -446,26 +446,26 @@ if (result.success && result.build) {
         });
       }
     });
-    
+
     // VERY HIGH PRIORITY: Memory/Storage capacity matching
     const capacityPatterns = [
       // RAM capacity patterns
       { pattern: /(\d+)gb\s*(ddr[45]|ram|memory)/gi, boost: 800 },
       { pattern: /(\d+)gb(?=.*ram|.*memory|.*ddr)/gi, boost: 700 },
-      
-      // Storage capacity patterns  
+
+      // Storage capacity patterns
       { pattern: /(\d+)(tb|gb)\s*(ssd|nvme|hdd)/gi, boost: 800 },
       { pattern: /(\d+)(tb|gb)(?=.*storage|.*drive)/gi, boost: 600 },
-      
+
       // Speed patterns for RAM
       { pattern: /(\d{4})mhz/gi, boost: 500 },
       { pattern: /(\d{4})\s*(?:mhz)?\s*ddr/gi, boost: 550 }
     ];
-    
+
     capacityPatterns.forEach(({ pattern, boost }) => {
       const searchMatches = searchTerm.match(pattern);
       const componentMatches = (componentName + ' ' + componentDescription).match(pattern);
-      
+
       if (searchMatches && componentMatches) {
         searchMatches.forEach(searchMatch => {
           componentMatches.forEach(componentMatch => {
@@ -475,7 +475,7 @@ if (result.success && result.build) {
               // Extract numbers for comparison
               const searchNum = parseInt(searchMatch.match(/\d+/)?.[0] || '0');
               const componentNum = parseInt(componentMatch.match(/\d+/)?.[0] || '0');
-              
+
               if (searchNum === componentNum) {
                 score += boost * 0.8; // Same number, different format
               }
@@ -484,7 +484,7 @@ if (result.success && result.build) {
         });
       }
     });
-    
+
     // HIGH PRIORITY: Complete phrase matching (e.g., "ryzen 5" in search matches "Ryzen 5" in name)
     const searchWords = searchTerm.split(/\s+/);
     if (searchWords.length >= 2) {
@@ -495,26 +495,26 @@ if (result.success && result.build) {
           phrases.push(searchWords.slice(i, i + 3).join(' '));
         }
       }
-      
+
       phrases.forEach(phrase => {
         if (componentName.includes(phrase)) {
           score += 500; // Multi-word phrase match
         }
       });
     }
-    
+
     // MEDIUM-HIGH PRIORITY: Start-of-word matches
     if (componentName.startsWith(searchTerm)) score += 300;
     if (componentBrand.startsWith(searchTerm)) score += 250;
     if (componentModel.startsWith(searchTerm)) score += 200;
-    
+
     // MEDIUM PRIORITY: Word boundary matches
     const wordBoundaryRegex = new RegExp(`\\b${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i');
     if (wordBoundaryRegex.test(componentName)) score += 150;
     if (wordBoundaryRegex.test(componentBrand)) score += 125;
     if (wordBoundaryRegex.test(componentModel)) score += 100;
     if (wordBoundaryRegex.test(componentDescription)) score += 75;
-    
+
     // MEDIUM PRIORITY: Individual word matching with position weighting
     searchWords.forEach((word, index) => {
       const positionBoost = Math.max(10 - index * 2, 1); // Earlier words get more weight
@@ -523,19 +523,19 @@ if (result.success && result.build) {
       if (componentModel.includes(word)) score += 30 * positionBoost;
       if (componentDescription.includes(word)) score += 20 * positionBoost;
     });
-    
+
     // LOW PRIORITY: Substring matches
     if (componentName.includes(searchTerm)) score += 25;
     if (componentBrand.includes(searchTerm)) score += 20;
     if (componentModel.includes(searchTerm)) score += 15;
     if (componentDescription.includes(searchTerm)) score += 10;
-    
+
     // Brand and series recognition boosts
     const brandBoosts = {
       // CPU brands and series - higher boosts for popular ones
-      'amd': 30, 'intel': 30, 'ryzen': 25, 'core': 25, 
+      'amd': 30, 'intel': 30, 'ryzen': 25, 'core': 25,
       'i3': 20, 'i5': 25, 'i7': 30, 'i9': 35,
-      // GPU brands and series  
+      // GPU brands and series
       'nvidia': 25, 'rtx': 30, 'gtx': 25, 'radeon': 20, 'rx': 25, 'geforce': 20,
       // Memory brands
       'corsair': 15, 'gskill': 15, 'kingston': 12, 'crucial': 12, 'ddr4': 10, 'ddr5': 15,
@@ -546,58 +546,58 @@ if (result.success && result.build) {
       // Case brands
       'nzxt': 10, 'fractal': 8, 'lianli': 8
     };
-    
+
     Object.entries(brandBoosts).forEach(([term, boost]) => {
       if (searchTerm.includes(term) && (componentName.includes(term) || componentBrand.includes(term))) {
         score += boost;
       }
     });
-    
+
     // Special boosts for performance indicators
     if (searchTerm.includes('gaming') && (componentName.includes('gaming') || componentBrand.includes('gaming'))) {
       score += 50;
     }
-    
+
     // Price range relevance
     const price = component.offers?.[0]?.price || 0;
     if (searchTerm.includes('budget') && price < 15000) score += 25;
     if (searchTerm.includes('mid') && price >= 15000 && price <= 50000) score += 20;
     if (searchTerm.includes('high') && price > 50000) score += 25;
-    
+
     return score;
   };
-  
+
   const performAdvancedLocalSearch = (components: PCComponent[], query: string): PCComponent[] => {
     const searchTerms = query.toLowerCase().trim().split(/\s+/).filter(term => term.length > 0);
-    
+
     if (searchTerms.length === 0) return components;
-    
+
     // Search for multiple terms
-    
+
     // Score each component based on relevance
     const scoredComponents = components.map(component => {
       let totalScore = 0;
       const componentText = `${component.name} ${component.brand} ${component.model} ${component.description}`.toLowerCase();
-      
+
       // First, give the full query a chance to match as a phrase
       const fullQueryScore = calculateRelevanceScore(component, query);
       totalScore += fullQueryScore;
-      
+
       // Then calculate score for each individual search term
       let individualTermsScore = 0;
       searchTerms.forEach(term => {
         individualTermsScore += calculateRelevanceScore(component, term);
       });
-      
+
       // Use the higher of full query or individual terms (but don't double count)
       totalScore = Math.max(fullQueryScore, individualTermsScore);
-      
+
       // MASSIVE bonus for matching ALL terms in a multi-term query
       if (searchTerms.length > 1) {
         const matchingTerms = searchTerms.filter(term => {
           return componentText.includes(term);
         });
-        
+
         if (matchingTerms.length === searchTerms.length) {
           // All terms match - huge bonus
           totalScore += 500;
@@ -606,7 +606,7 @@ if (result.success && result.build) {
           const partialBonus = matchingTerms.length * 50;
           totalScore += partialBonus;
         }
-        
+
         // Extra bonus for consecutive word matches (e.g., "ryzen 5" appearing together)
         const consecutiveMatches = findConsecutiveMatches(componentText, searchTerms);
         if (consecutiveMatches > 0) {
@@ -614,35 +614,35 @@ if (result.success && result.build) {
           totalScore += consecutiveBonus;
         }
       }
-      
+
       return { component, score: totalScore };
     });
-    
+
     // Filter out components with score 0 and sort by relevance
     const sortedResults = scoredComponents
       .filter(item => item.score > 0)
       .sort((a, b) => {
         // Primary sort: by relevance score (descending)
         if (b.score !== a.score) return b.score - a.score;
-        
+
         // Secondary sort: by price (ascending for budget-conscious users)
         const priceA = a.component.offers?.[0]?.price || 0;
         const priceB = b.component.offers?.[0]?.price || 0;
         if (priceA !== priceB) return priceA - priceB;
-        
+
         // Tertiary sort: by name (alphabetical)
         return (a.component.name || '').localeCompare(b.component.name || '');
       });
-    
+
     // Sort by relevance
-    
+
     return sortedResults.map(item => item.component);
   };
-  
+
   // Helper function to find consecutive word matches
   const findConsecutiveMatches = (text: string, searchTerms: string[]): number => {
     let consecutiveCount = 0;
-    
+
     // Check for each possible consecutive pair/trio of search terms
     for (let i = 0; i < searchTerms.length - 1; i++) {
       const phrase2 = searchTerms.slice(i, i + 2).join('\\s+');
@@ -650,7 +650,7 @@ if (result.success && result.build) {
       if (regex2.test(text)) {
         consecutiveCount++;
       }
-      
+
       // Check for 3-word consecutive matches
       if (i < searchTerms.length - 2) {
         const phrase3 = searchTerms.slice(i, i + 3).join('\\s+');
@@ -660,7 +660,7 @@ if (result.success && result.build) {
         }
       }
     }
-    
+
     return consecutiveCount;
   };
 
@@ -680,25 +680,25 @@ if (result.success && result.build) {
     setAvailableComponents([]);
     // Reset pagination for search results
     setCurrentPage(1);
-    
+
     try {
       // Fetch all 3 pages from Amazon API before showing any results
       let allApiComponents: PCComponent[] = [];
-      
+
       console.log('🔄 Fetching 3 pages of results before prioritization...');
-      
+
       for (let page = 1; page <= 3; page++) {
         try {
           console.log(`📄 Fetching page ${page}/3...`);
           const pageResult = await apiService.searchComponentsPaginated(query, page, {
             category: selectedCategory || undefined,
           });
-          
+
           if (pageResult.components && pageResult.components.length > 0) {
             allApiComponents = [...allApiComponents, ...pageResult.components];
             console.log(`✅ Page ${page}: Added ${pageResult.components.length} components (total: ${allApiComponents.length})`);
           }
-          
+
           // If this page has no more results, stop fetching
           if (!pageResult.hasMore) {
             console.log(`🏁 No more results after page ${page}, stopping fetch`);
@@ -709,11 +709,11 @@ if (result.success && result.build) {
           // Continue to next page even if one fails
         }
       }
-      
+
       console.log('🎯 All pages fetched, starting prioritization...');
-      
+
       let searchResults: PCComponent[] = [];
-      
+
       if (allApiComponents.length > 0) {
         // Apply local relevance scoring to all API results from all pages
         searchResults = performAdvancedLocalSearch(allApiComponents, query);
@@ -721,20 +721,20 @@ if (result.success && result.build) {
         // Fallback to enhanced local search
         searchResults = performAdvancedLocalSearch(allComponents, query);
       }
-      
+
       console.log('✨ Prioritization complete! Showing results...');
-      
+
       // Only show results after ALL pages are fetched and prioritization is complete
       const paginatedResults = searchResults.slice(0, COMPONENTS_PER_PAGE);
       setTotalComponents(searchResults.length);
       setHasMoreComponents(searchResults.length > COMPONENTS_PER_PAGE);
-      
+
       // Store full search results for pagination
       setAllComponents(searchResults);
-      
+
       // Set results only after everything is processed
       setAvailableComponents(paginatedResults);
-      
+
       console.log(`🏆 Search completed: fetched ${allApiComponents.length} components from 3 pages, prioritized to ${searchResults.length} results, showing first ${paginatedResults.length}`);
     } catch (error) {
       console.error('❌ Error searching components:', error);
@@ -744,29 +744,29 @@ if (result.success && result.build) {
       setTotalComponents(localResults.length);
       setHasMoreComponents(localResults.length > COMPONENTS_PER_PAGE);
       setAllComponents(localResults);
-      
+
       // Set results only after everything is processed
       setAvailableComponents(paginatedResults);
     } finally {
       setIsSearching(false);
     }
   };
-  
+
   const loadMoreComponents = async () => {
     if (isLoadingMore || !hasMoreComponents) return;
-    
+
     setIsLoadingMore(true);
     console.log(`📄 Loading more components... Current page: ${currentPage}`);
-    
+
     try {
       const nextPage = currentPage + 1;
-      
+
       // If we're in search mode, use local pagination from cached results
       if (searchQuery.trim()) {
         const startIndex = currentPage * COMPONENTS_PER_PAGE;
         const endIndex = startIndex + COMPONENTS_PER_PAGE;
         const nextBatch = allComponents.slice(startIndex, endIndex);
-        
+
         if (nextBatch.length > 0) {
           setAvailableComponents(prev => [...prev, ...nextBatch]);
           setCurrentPage(nextPage);
@@ -786,21 +786,21 @@ if (result.success && result.build) {
           selectedCategory.toLowerCase() === 'case' ? 'pc cabinet case tower mid tower full tower' :
           selectedCategory.toLowerCase() === 'cooling' ? 'cpu cooler fan liquid cooling aio corsair noctua' :
           selectedCategory;
-          
+
         const result = await apiService.searchComponentsPaginated(
           searchTerm,
           nextPage,
           { category: selectedCategory }
         );
-        
+
         if (result.components.length > 0) {
           setAvailableComponents(prev => [...prev, ...result.components]);
           setCurrentPage(nextPage);
           setHasMoreComponents(result.hasMore);
-          
+
           // Update allComponents for potential search later
           setAllComponents(prev => [...prev, ...result.components]);
-          
+
           console.log(`✅ Server pagination: Loaded ${result.components.length} more from page ${nextPage}`);
         } else {
           setHasMoreComponents(false);
@@ -837,7 +837,7 @@ if (result.success && result.build) {
         return 'Search by brand, model, specs, or features...';
     }
   };
-  
+
   // Add search suggestions based on category
   const getSearchSuggestions = (category: string): string[] => {
     const suggestions: Record<string, string[]> = {
@@ -850,7 +850,7 @@ if (result.success && result.build) {
       case: ['Mid Tower', 'Full Tower', 'Mini ITX', 'RGB', 'tempered glass', 'airflow'],
       cooling: ['CPU cooler', 'AIO', '240mm', '280mm', 'RGB', 'quiet', 'low profile']
     };
-    
+
     return suggestions[category] || [];
   };
 
@@ -867,24 +867,24 @@ if (result.success && result.build) {
   // Generate affiliate links for components with PDF-safe encoding
   const generateAffiliateLinksForComponents = async (components: any) => {
     const componentsWithAffiliateLinks = {};
-    
+
     console.log('📄 Starting affiliate link generation for PDF...');
-    
+
     for (const [key, component] of Object.entries(components)) {
       if (component && typeof component === 'object') {
         const comp = component as PCComponent;
         const componentUrl = comp?.url || comp?.offers?.[0]?.url;
-        
+
         if (componentUrl) {
           try {
             console.log(`💰 Generating affiliate link for ${key}:`, componentUrl);
             const affiliateUrl = await apiService.generateAffiliateLink(componentUrl);
-            
+
             // Clean and encode the affiliate URL for PDF compatibility
             const pdfSafeUrl = encodeURI(affiliateUrl).replace(/'/g, '%27').replace(/"/g, '%22');
-            
+
             console.log(`✅ Generated PDF-safe affiliate link for ${key}:`, pdfSafeUrl.substring(0, 100) + '...');
-            
+
             componentsWithAffiliateLinks[key] = {
               ...comp,
               affiliateUrl: pdfSafeUrl,
@@ -905,7 +905,7 @@ if (result.success && result.build) {
         }
       }
     }
-    
+
     console.log('✅ Completed affiliate link generation for PDF');
     return componentsWithAffiliateLinks;
   };
@@ -914,16 +914,16 @@ if (result.success && result.build) {
   const generatePDFHTML = (build: LocalPCBuild, componentsWithLinks: any) => {
     const currentDate = new Date().toLocaleDateString();
     const buildName = build.name || 'My PC Build';
-    
+
     let componentsHTML = '';
-    
+
     componentCategories.forEach(category => {
       const component = componentsWithLinks[category.key];
       if (component) {
         const price = component.price || component.offers?.[0]?.price || 0;
         const discount = component.discount || component.offers?.[0]?.discount || 0;
         const affiliateUrl = component.affiliateUrl || component.url || component.offers?.[0]?.url || '#';
-        
+
         componentsHTML += `
           <tr>
             <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
@@ -1142,7 +1142,7 @@ if (result.success && result.build) {
       </body>
       </html>
     `;
-    
+
     return html;
   };
 
@@ -1153,7 +1153,7 @@ if (result.success && result.build) {
       const hasComponents = Object.keys(currentBuild.components || {}).some(
         key => currentBuild.components[key as keyof typeof currentBuild.components]
       );
-      
+
       if (!hasComponents) {
         Alert.alert('Empty Build', 'Please add some components to your build before downloading the PDF.');
         return;
@@ -1182,35 +1182,35 @@ if (result.success && result.build) {
       const htmlContent = generatePDFHTML(currentBuild, componentsWithLinks);
 
       console.log('📄 Creating PDF with Expo Print...');
-      
+
       // Generate PDF using Expo Print
       const { uri } = await Print.printToFileAsync({
         html: htmlContent,
         base64: false,
       });
-      
+
       if (uri) {
         console.log('✅ PDF generated successfully:', uri);
-        
+
         // Create a more user-friendly filename
         const fileName = `${currentBuild.name.replace(/[^a-zA-Z0-9]/g, '_')}_Build_${Date.now()}.pdf`;
         const newUri = `${FileSystem.documentDirectory}${fileName}`;
-        
+
         try {
           // Move the file to a more accessible location with a better name
           await FileSystem.moveAsync({
             from: uri,
             to: newUri
           });
-          
+
           console.log('📄 File moved to:', newUri);
-          
+
           // Share the PDF
           await Sharing.shareAsync(newUri, {
             mimeType: 'application/pdf',
             dialogTitle: `${currentBuild.name} - PC Build Report`,
           });
-          
+
           Alert.alert(
             'PDF Generated!',
             'Your PC build report has been generated and is ready to share.',
@@ -1242,7 +1242,7 @@ const renderComponentSlot = (category: any) => {
     // currentBuild is always defined; ensure components is an object
     const componentsMap = currentBuild.components || {} as LocalPCBuild['components'];
     const component = componentsMap[category.key as keyof typeof componentsMap];
-    
+
     // Handle both backend structure (direct price) and frontend structure (offers array)
     const componentPrice = component?.price || component?.offers?.[0]?.price || 0;
     const componentUrl = component?.url || component?.offers?.[0]?.url || component?.offers?.[0]?.affiliateUrl;
@@ -1260,7 +1260,7 @@ const renderComponentSlot = (category: any) => {
 
         {component ? (
           <View style={styles.selectedComponentContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.selectedComponent}
               onPress={() => Alert.alert(
                 component.name || 'Selected Component',
@@ -1292,7 +1292,7 @@ const renderComponentSlot = (category: any) => {
                 {componentDiscount > 0 && (
                   <Text style={styles.componentDiscount}>{componentDiscount}% OFF</Text>
                 )}
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.buyNowButton}
                   onPress={async (e) => {
                     e.stopPropagation();
@@ -1314,7 +1314,7 @@ const renderComponentSlot = (category: any) => {
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.deleteButton}
               onPress={() => removeComponentFromBuild(category.key)}
             >
@@ -1322,7 +1322,7 @@ const renderComponentSlot = (category: any) => {
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.emptySlot}
             onPress={() => selectComponent(category.key)}
           >
@@ -1366,9 +1366,9 @@ const renderBuildSummary = () => {
             <Text key={index} style={styles.errorText}>• {error}</Text>
           ))}
         </View>
-        
+
         {/* Download PDF Button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.downloadButton}
           onPress={downloadBuildPDF}
         >
@@ -1400,17 +1400,17 @@ const renderBuildSummary = () => {
             value={searchQuery}
             onChangeText={(text) => {
               setSearchQuery(text);
-              
+
               // Clear existing timeout
               if (searchTimeout) {
                 clearTimeout(searchTimeout);
               }
-              
+
               // Set new timeout for debounced search
               const timeout = setTimeout(() => {
                 handleSearchComponent(text);
               }, SEARCH_DEBOUNCE_DELAY);
-              
+
               setSearchTimeout(timeout);
             }}
             returnKeyType="search"
@@ -1426,14 +1426,14 @@ const renderBuildSummary = () => {
             autoCorrect={false}
           />
           {isSearching && (
-            <ActivityIndicator 
-              size="small" 
-              color="#3b82f6" 
-              style={styles.searchSpinner} 
+            <ActivityIndicator
+              size="small"
+              color="#3b82f6"
+              style={styles.searchSpinner}
             />
           )}
           {searchQuery.length > 0 && (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => {
                 setSearchQuery('');
                 setAvailableComponents(allComponents);
@@ -1489,7 +1489,7 @@ const renderBuildSummary = () => {
             data={availableComponents}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.componentOption}
                 onPress={() => addComponentToBuild(item)}
                 onLongPress={async () => {
@@ -1562,12 +1562,12 @@ const renderBuildSummary = () => {
           <View style={styles.noResultsContainer}>
             <Text style={styles.noResultsTitle}>🔍 No components found</Text>
             <Text style={styles.noResultsText}>
-              {searchQuery.length > 0 
+              {searchQuery.length > 0
                 ? `No results for &quot;${searchQuery}&quot;. Try different keywords.`
                 : 'No components available in this category.'}
             </Text>
             {searchQuery.length > 0 && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.clearSearchButton}
                 onPress={() => {
                   setSearchQuery('');

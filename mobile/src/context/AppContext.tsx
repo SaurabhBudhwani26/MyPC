@@ -220,7 +220,7 @@ interface AppContextType {
   isLoading: boolean;
   activeTab: 'search' | 'builds' | 'deals' | 'profile';
   apiOnline: boolean;
-  
+
   // Actions
   setSearchQuery: (query: string) => void;
   setActiveTab: (tab: 'search' | 'builds' | 'deals' | 'profile') => void;
@@ -258,7 +258,7 @@ function InternalAppProvider({ children }: AppProviderProps) {
 
   const searchComponents = async (query: string): Promise<PCComponent[]> => {
     setIsLoading(true);
-    
+
     try {
       const components = await apiService.searchComponents(query);
       setIsLoading(false);
@@ -272,7 +272,7 @@ function InternalAppProvider({ children }: AppProviderProps) {
 
   const getComponentsByCategory = async (category: string): Promise<PCComponent[]> => {
     setIsLoading(true);
-    
+
     try {
       const components = await apiService.getComponentsByCategory(category);
       setIsLoading(false);
@@ -286,7 +286,7 @@ function InternalAppProvider({ children }: AppProviderProps) {
 
   const getTodayDeals = async (): Promise<ComponentOffer[]> => {
     setIsLoading(true);
-    
+
     try {
       const deals = await apiService.getTodayDeals();
       setIsLoading(false);
@@ -304,7 +304,7 @@ function InternalAppProvider({ children }: AppProviderProps) {
     isLoading,
     activeTab,
     apiOnline,
-    
+
     // Actions
     setSearchQuery,
     setActiveTab,

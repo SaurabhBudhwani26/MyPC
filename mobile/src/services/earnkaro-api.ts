@@ -11,12 +11,12 @@ interface EarnKaroConvertResponse {
   status: string;
   message: string;
   data: {
-    converted_links: Array<{
+    converted_links: {
       original_url: string;
       converted_url: string;
       merchant: string;
       commission_rate?: string;
-    }>;
+    }[];
   };
 }
 
@@ -24,7 +24,7 @@ interface EarnKaroDealsResponse {
   status: string;
   message: string;
   data: {
-    deals: Array<{
+    deals: {
       id: string;
       title: string;
       description: string;
@@ -38,7 +38,7 @@ interface EarnKaroDealsResponse {
       affiliate_url: string;
       cashback_rate?: string;
       validity?: string;
-    }>;
+    }[];
   };
 }
 
@@ -46,7 +46,7 @@ interface EarnKaroProductSearchResponse {
   status: string;
   message: string;
   data?: {
-    products: Array<{
+    products: {
       id: string;
       name: string;
       price: number;
@@ -55,7 +55,7 @@ interface EarnKaroProductSearchResponse {
       affiliate_link: string;
       rating?: number;
       reviews?: number;
-    }>;
+    }[];
   };
 }
 
@@ -92,26 +92,26 @@ class EarnKaroAPIService {
     try {
       const dealText = urls.join('\n');
       const response = await this.performConversion(dealText);
-      
+
       const convertedLinks: { [key: string]: string } = {};
-      
+
       if (response.data?.converted_links) {
         response.data.converted_links.forEach(link => {
           convertedLinks[link.original_url] = link.converted_url;
         });
       }
-      
+
       // Fill in any missing conversions with original URLs
       urls.forEach(url => {
         if (!convertedLinks[url]) {
           convertedLinks[url] = url;
         }
       });
-      
+
       return convertedLinks;
     } catch (error) {
       console.error('Error converting links with EarnKaro:', error);
-      
+
       // Return original URLs as fallback
       const result: { [key: string]: string } = {};
       urls.forEach(url => result[url] = url);
@@ -141,31 +141,31 @@ class EarnKaroAPIService {
       // Test converter endpoint first to verify API connectivity
       console.log('🔍 Testing EarnKaro API connectivity...');
       await this.testAPIConnectivity();
-      
+
       // Try to search for real deals using EarnKaro API
       console.log('🔍 Searching EarnKaro for real deals...');
       const dealsResponse = await this.performDealsSearch(query, category);
-      
+
       if (dealsResponse.status === 'success' && dealsResponse.data?.deals) {
         const pcComponents = dealsResponse.data.deals
           .filter(deal => this.isPCComponent(deal.title, deal.category))
           .map(deal => this.transformEarnKaroDeal(deal));
-        
+
         console.log(`💰 EarnKaro found ${pcComponents.length} PC component deals`);
         return pcComponents;
       } else {
         console.log('📭 No deals found from EarnKaro API');
         return [];
       }
-      
+
     } catch (error) {
       console.error('❌ Error connecting to EarnKaro API:', error);
-      
+
       if (error.message && error.message.includes('401')) {
         console.log('🔑 Invalid API key. Get your real EarnKaro API key from: https://www.earnkaro.com/');
         console.log('📝 Update EXPO_PUBLIC_EARNKARO_API_KEY in your .env file');
       }
-      
+
       console.log('📭 No EarnKaro deals available');
       return [];
     }
@@ -173,10 +173,10 @@ class EarnKaroAPIService {
 
   async testAPIConnectivity(): Promise<void> {
     console.log('🌐 Testing EarnKaro API at:', `${this.config.apiUrl}/api/converter/public`);
-    
+
     // Test with a simple Amazon URL conversion
     const testUrl = 'https://www.amazon.in/dp/B08166SLDF';
-    
+
     try {
       const response = await fetch(`${this.config.apiUrl}/api/converter/public`, {
         method: 'POST',
@@ -191,7 +191,7 @@ class EarnKaroAPIService {
       });
 
       console.log('📊 EarnKaro API Response Status:', response.status);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.log('❌ API Error Response:', errorText);
@@ -200,7 +200,7 @@ class EarnKaroAPIService {
 
       const result = await response.json();
       console.log('✅ EarnKaro API Test Success:', JSON.stringify(result, null, 2));
-      
+
     } catch (error) {
       console.error('🚨 EarnKaro API Test Failed:', error);
       throw error;
@@ -209,7 +209,7 @@ class EarnKaroAPIService {
 
   async getTrendingDeals(category?: string): Promise<EarnKaroDealsResponse> {
     const url = new URL(`${this.config.apiUrl}/deals/trending`);
-    
+
     if (category) {
       // Map PC categories to EarnKaro categories
       const earnkaroCategory = this.mapToEarnKaroCategory(category);
@@ -217,7 +217,7 @@ class EarnKaroAPIService {
     } else {
       url.searchParams.append('category', 'electronics');
     }
-    
+
     const response = await fetch(url.toString(), {
       headers: {
         'Authorization': `Bearer ${this.config.apiToken}`,
@@ -255,11 +255,11 @@ class EarnKaroAPIService {
   private async performDealsSearch(query: string, category?: string): Promise<EarnKaroDealsResponse> {
     const url = new URL(`${this.config.apiUrl}/deals/search`);
     url.searchParams.append('query', query);
-    
+
     if (category) {
       url.searchParams.append('category', category);
     }
-    
+
     const response = await fetch(url.toString(), {
       headers: {
         'Authorization': `Bearer ${this.config.apiToken}`,
@@ -280,7 +280,7 @@ class EarnKaroAPIService {
       'ssd', 'hdd', 'storage', 'power supply', 'psu', 'cabinet', 'case', 'cooler',
       'intel', 'amd', 'nvidia', 'corsair', 'asus', 'msi', 'gigabyte', 'gaming'
     ];
-    
+
     const text = `${title} ${category}`.toLowerCase();
     return pcKeywords.some(keyword => text.includes(keyword));
   }
@@ -288,7 +288,7 @@ class EarnKaroAPIService {
   private transformEarnKaroDeal(deal: any): PCComponent {
     const category = this.extractCategory(deal.title, deal.category);
     const brand = this.extractBrand(deal.title);
-    
+
     const offers: ComponentOffer[] = [{
       id: `earnkaro-${deal.id}`,
       componentId: deal.id,
@@ -318,9 +318,9 @@ class EarnKaroAPIService {
       reviewCount: undefined,
       availability: 'in_stock',
       averagePrice: deal.discounted_price,
-      priceRange: { 
-        min: deal.discounted_price, 
-        max: deal.original_price 
+      priceRange: {
+        min: deal.discounted_price,
+        max: deal.original_price
       },
       lastUpdated: new Date().toISOString(),
       specifications: this.extractSpecifications(deal.title, deal.description || ''),
@@ -349,8 +349,8 @@ class EarnKaroAPIService {
 
   private extractBrand(title: string): string {
     const commonBrands = [
-      'AMD', 'Intel', 'NVIDIA', 'ASUS', 'MSI', 'Gigabyte', 'ASRock', 
-      'Corsair', 'G.Skill', 'Kingston', 'Samsung', 'Western Digital', 
+      'AMD', 'Intel', 'NVIDIA', 'ASUS', 'MSI', 'Gigabyte', 'ASRock',
+      'Corsair', 'G.Skill', 'Kingston', 'Samsung', 'Western Digital',
       'Seagate', 'Cooler Master', 'Thermaltake', 'NZXT', 'Fractal Design'
     ];
 
@@ -371,19 +371,19 @@ class EarnKaroAPIService {
   private extractSpecifications(title: string, description: string): Record<string, any> {
     const specs: Record<string, any> = {};
     const text = `${title} ${description}`.toLowerCase();
-    
+
     const ghzMatch = text.match(/(\d+\.?\d*)\s*ghz/i);
     if (ghzMatch) specs.clockSpeed = `${ghzMatch[1]} GHz`;
-    
+
     const memoryMatch = text.match(/(\d+)\s*gb.*?(ddr\d+)/i);
     if (memoryMatch) {
       specs.memory = `${memoryMatch[1]}GB`;
       specs.memoryType = memoryMatch[2].toUpperCase();
     }
-    
+
     const coreMatch = text.match(/(\d+)[-\s]?core/i);
     if (coreMatch) specs.cores = parseInt(coreMatch[1]);
-    
+
     const threadMatch = text.match(/(\d+)[-\s]?thread/i);
     if (threadMatch) specs.threads = parseInt(threadMatch[1]);
 
@@ -393,7 +393,7 @@ class EarnKaroAPIService {
   private mapToEarnKaroCategory(category: string): string {
     const categoryMap: { [key: string]: string } = {
       'CPU': 'electronics',
-      'GPU': 'electronics', 
+      'GPU': 'electronics',
       'RAM': 'electronics',
       'Motherboard': 'electronics',
       'Storage': 'electronics',
@@ -401,7 +401,7 @@ class EarnKaroAPIService {
       'Case': 'electronics',
       'Cooling': 'electronics',
     };
-    
+
     return categoryMap[category] || 'electronics';
   }
 

@@ -94,17 +94,17 @@ class AmazonSearchAPIService {
 
     try {
       console.log(`🔍 Searching Amazon for: "${query}" (fetching ${maxPages} pages)`);
-      
+
       let allComponents: PCComponent[] = [];
       let totalProducts = 0;
-      
+
       // Fetch multiple pages to get more results
       for (let page = 1; page <= maxPages; page++) {
         console.log(`📄 Fetching page ${page} of ${maxPages}...`);
-        
+
         try {
           const response = await this.performSearch(query, page);
-          
+
           if (!response.data?.products || response.data.products.length === 0) {
             console.log(`⚠️ No products found on page ${page}, stopping`);
             break;
@@ -112,9 +112,9 @@ class AmazonSearchAPIService {
 
           console.log(`✅ Page ${page}: Found ${response.data.products.length} products from Amazon`);
           totalProducts = response.data.total_products || 0;
-          
+
           // Filter for PC components
-          const pcProducts = response.data.products.filter(product => 
+          const pcProducts = response.data.products.filter(product =>
             this.isPCComponent(product.product_title)
           );
 
@@ -128,25 +128,25 @@ class AmazonSearchAPIService {
           // Convert Amazon URLs to affiliate links for this batch
           const productUrls = pcProducts.map(product => product.product_url);
           console.log(`🔄 Page ${page}: Converting ${productUrls.length} URLs to affiliate links...`);
-          
+
           const affiliateLinks = await earnKaroAPIService.convertLinks(productUrls);
-          
+
           // Transform to PCComponent format
-          const components = pcProducts.map(product => 
+          const components = pcProducts.map(product =>
             this.transformAmazonProduct(product, affiliateLinks[product.product_url])
           );
 
           allComponents = [...allComponents, ...components];
           console.log(`📦 Page ${page}: Added ${components.length} components. Total: ${allComponents.length}`);
-          
+
           // Small delay between requests to be respectful to the API
           if (page < maxPages) {
             await new Promise(resolve => setTimeout(resolve, 500));
           }
-          
+
         } catch (pageError) {
           console.error(`❌ Error fetching page ${page}:`, pageError);
-          
+
           // If we get a rate limit error, stop fetching more pages
           if (pageError.message && pageError.message.includes('429')) {
             console.log('💸 Hit rate limit, stopping pagination');
@@ -154,29 +154,29 @@ class AmazonSearchAPIService {
             this.lastQuotaCheck = Date.now();
             break;
           }
-          
+
           // For other errors, continue to next page
           continue;
         }
       }
-      
+
       console.log(`✨ Final result: ${allComponents.length} total PC components from ${maxPages} pages (${totalProducts} total products available)`);
       return allComponents;
 
     } catch (error) {
       console.error('❌ Error searching Amazon products:', error);
-      
+
       // Check if this is a quota exceeded error
       if (error.message && error.message.includes('429')) {
         console.log('💸 Amazon API monthly quota exceeded, marking as unavailable');
         this.quotaExceeded = true;
         this.lastQuotaCheck = Date.now();
       }
-      
+
       return [];
     }
   }
-  
+
   // New method for paginated search (used by infinite scroll)
   async searchProductsPaginated(query: string, page: number = 1, category?: string): Promise<{
     components: PCComponent[];
@@ -202,35 +202,35 @@ class AmazonSearchAPIService {
 
     try {
       console.log(`🔍 Paginated search: "${query}" - Page ${page}`);
-      
+
       const response = await this.performSearch(query, page);
-      
+
       if (!response.data?.products) {
         return { components: [], totalProducts: 0, hasMore: false, currentPage: page };
       }
 
       console.log(`✅ Page ${page}: Found ${response.data.products.length} products from Amazon`);
-      
+
       // Filter for PC components
-      const pcProducts = response.data.products.filter(product => 
+      const pcProducts = response.data.products.filter(product =>
         this.isPCComponent(product.product_title)
       );
 
       // Convert to affiliate links
       const productUrls = pcProducts.map(product => product.product_url);
       const affiliateLinks = await earnKaroAPIService.convertLinks(productUrls);
-      
+
       // Transform to PCComponent format
-      const components = pcProducts.map(product => 
+      const components = pcProducts.map(product =>
         this.transformAmazonProduct(product, affiliateLinks[product.product_url])
       );
 
       const totalProducts = response.data.total_products || 0;
       const totalPages = Math.ceil(totalProducts / 16); // Amazon returns ~16 per page
       const hasMore = page < totalPages && page < 20; // Limit to 20 pages max
-      
+
       console.log(`📦 Page ${page}: ${components.length} PC components, ${totalProducts} total products, hasMore: ${hasMore}`);
-      
+
       return {
         components,
         totalProducts,
@@ -240,12 +240,12 @@ class AmazonSearchAPIService {
 
     } catch (error) {
       console.error(`❌ Error in paginated search (page ${page}):`, error);
-      
+
       if (error.message && error.message.includes('429')) {
         this.quotaExceeded = true;
         this.lastQuotaCheck = Date.now();
       }
-      
+
       return { components: [], totalProducts: 0, hasMore: false, currentPage: page };
     }
   }
@@ -253,7 +253,7 @@ class AmazonSearchAPIService {
   private async performSearch(query: string, page: number = 1): Promise<AmazonSearchResponse> {
     // Using Amazon Products API - a working RapidAPI service
     const url = `https://${this.config.apiHost}/search?query=${encodeURIComponent(query)}&page=${page}&country=IN`;
-    
+
     console.log('🌐 Making request to:', url);
 
     const response = await fetch(url, {
@@ -266,7 +266,7 @@ class AmazonSearchAPIService {
     });
 
     console.log('📊 API Response Status:', response.status);
-    
+
     if (!response.ok) {
       const errorText = await response.text();
       console.log('❌ API Error Response:', errorText);
@@ -275,7 +275,7 @@ class AmazonSearchAPIService {
 
     const data = await response.json();
     console.log('📦 Raw API Response:', JSON.stringify(data, null, 2));
-    
+
     return data;
   }
 
@@ -286,7 +286,7 @@ class AmazonSearchAPIService {
       'intel', 'amd', 'nvidia', 'corsair', 'asus', 'msi', 'gigabyte', 'gaming',
       'desktop', 'computer', 'pc', 'workstation', 'ryzen', 'geforce', 'radeon'
     ];
-    
+
     const titleLower = title.toLowerCase();
     return pcKeywords.some(keyword => titleLower.includes(keyword));
   }
@@ -295,7 +295,7 @@ class AmazonSearchAPIService {
     const price = this.parsePrice(product.product_price);
     const originalPrice = this.parsePrice(product.product_original_price) || price;
     const discount = originalPrice > price ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
-    
+
     const category = this.extractCategory(product.product_title);
     const brand = this.extractBrand(product.product_title);
 
@@ -342,7 +342,7 @@ class AmazonSearchAPIService {
 
   private parsePrice(priceString?: string): number {
     if (!priceString) return 0;
-    
+
     // Remove currency symbols and commas, extract number
     const cleanPrice = priceString.replace(/[₹$,]/g, '').replace(/[^\d.]/g, '');
     return parseFloat(cleanPrice) || 0;
@@ -386,16 +386,16 @@ class AmazonSearchAPIService {
   private extractSpecifications(title: string): Record<string, any> {
     const specs: Record<string, any> = {};
     const titleLower = title.toLowerCase();
-    
+
     const ghzMatch = titleLower.match(/(\d+\.?\d*)\s*ghz/i);
     if (ghzMatch) specs.clockSpeed = `${ghzMatch[1]} GHz`;
-    
+
     const memoryMatch = titleLower.match(/(\d+)\s*gb.*?(ddr\d+)/i);
     if (memoryMatch) {
       specs.memory = `${memoryMatch[1]}GB`;
       specs.memoryType = memoryMatch[2].toUpperCase();
     }
-    
+
     const coreMatch = titleLower.match(/(\d+)[-\s]?core/i);
     if (coreMatch) specs.cores = parseInt(coreMatch[1]);
 
@@ -404,11 +404,11 @@ class AmazonSearchAPIService {
 
   private getBadges(product: AmazonProduct): string[] {
     const badges: string[] = [];
-    
+
     if (product.is_best_seller) badges.push('Best Seller');
     if (product.is_amazon_choice) badges.push("Amazon's Choice");
     if (product.is_prime) badges.push('Prime');
-    
+
     return badges;
   }
 }

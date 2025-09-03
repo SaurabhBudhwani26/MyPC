@@ -47,14 +47,14 @@ export interface PCComponent {
   lastUpdated: string;
 }
 
-export type ComponentCategory = 
-  | 'CPU' 
-  | 'GPU' 
-  | 'RAM' 
-  | 'Motherboard' 
-  | 'Storage' 
-  | 'PSU' 
-  | 'Case' 
+export type ComponentCategory =
+  | 'CPU'
+  | 'GPU'
+  | 'RAM'
+  | 'Motherboard'
+  | 'Storage'
+  | 'PSU'
+  | 'Case'
   | 'Cooling';
 
 // Build component reference for simpler storage

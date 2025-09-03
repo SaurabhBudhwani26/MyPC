@@ -37,7 +37,7 @@ interface AmazonProduct {
     };
   };
   Offers?: {
-    Listings?: Array<{
+    Listings?: {
       Price?: {
         Amount: number;
         Currency: string;
@@ -51,7 +51,7 @@ interface AmazonProduct {
       Availability?: {
         Message: string;
       };
-    }>;
+    }[];
   };
   CustomerReviews?: {
     Count?: number;
@@ -66,10 +66,10 @@ interface AmazonSearchResponse {
     Items: AmazonProduct[];
     TotalResultCount: number;
   };
-  Errors?: Array<{
+  Errors?: {
     Code: string;
     Message: string;
-  }>;
+  }[];
 }
 
 class AmazonAPIService {
@@ -112,7 +112,7 @@ class AmazonAPIService {
     try {
       const searchIndex = this.mapCategoryToSearchIndex(category);
       const response = await this.performSearch(query, searchIndex);
-      
+
       if (response.Errors && response.Errors.length > 0) {
         console.error('Amazon API errors:', response.Errors);
         return this.getMockAmazonProducts(query);
@@ -140,7 +140,7 @@ class AmazonAPIService {
 
     try {
       const response = await this.performGetItems([asin]);
-      
+
       if (response.Errors && response.Errors.length > 0) {
         console.error('Amazon API errors:', response.Errors);
         return null;
@@ -163,16 +163,16 @@ class AmazonAPIService {
   generateAffiliateLink(asin: string, additionalParams?: Record<string, string>): string {
     const baseUrl = `https://amazon.in/dp/${asin}`;
     const params = new URLSearchParams();
-    
+
     if (this.config.partnerTag) {
       params.append('tag', this.config.partnerTag);
     }
-    
+
     // Add tracking parameters
     params.append('linkCode', 'as2');
     params.append('camp', '3638');
     params.append('creative', '24630');
-    
+
     if (additionalParams) {
       Object.entries(additionalParams).forEach(([key, value]) => {
         params.append(key, value);
@@ -207,16 +207,16 @@ class AmazonAPIService {
   private transformAmazonProduct(item: AmazonProduct): PCComponent {
     const title = item.ItemInfo?.Title?.DisplayValue || 'Unknown Product';
     const brand = item.ItemInfo?.ByLineInfo?.Brand?.DisplayValue || 'Unknown';
-    
+
     // Extract category from title/features (simplified logic)
     const category = this.extractCategory(title, item.ItemInfo?.Features?.DisplayValues || []);
-    
+
     const price = item.Offers?.Listings?.[0]?.Price?.Amount || 0;
     const originalPrice = item.Offers?.Listings?.[0]?.SavingBasis?.Amount;
     const discount = originalPrice && price ? Math.round(((originalPrice - price) / originalPrice) * 100) : undefined;
 
     const availability = item.Offers?.Listings?.[0]?.Availability?.Message || 'in_stock';
-    
+
     const offers: ComponentOffer[] = [{
       id: `amazon-${item.ASIN}`,
       componentId: item.ASIN,
@@ -262,7 +262,7 @@ class AmazonAPIService {
   private mapCategoryToSearchIndex(category?: string): string {
     const categoryMap: Record<string, string> = {
       'CPU': 'Electronics',
-      'GPU': 'Electronics', 
+      'GPU': 'Electronics',
       'RAM': 'Electronics',
       'Motherboard': 'Electronics',
       'Storage': 'Electronics',
@@ -338,14 +338,14 @@ class AmazonAPIService {
    */
   private extractSpecifications(features: string[]): Record<string, any> {
     const specs: Record<string, any> = {};
-    
+
     features.forEach(feature => {
       // Extract common specifications
       if (feature.includes('GHz')) {
         const speedMatch = feature.match(/(\d+\.?\d*)\s*GHz/i);
         if (speedMatch) specs.clockSpeed = `${speedMatch[1]} GHz`;
       }
-      
+
       if (feature.includes('GB') && feature.includes('DDR')) {
         const memoryMatch = feature.match(/(\d+)\s*GB.*?(DDR\d+)/i);
         if (memoryMatch) {
@@ -353,7 +353,7 @@ class AmazonAPIService {
           specs.memoryType = memoryMatch[2];
         }
       }
-      
+
       if (feature.includes('Core')) {
         const coreMatch = feature.match(/(\d+)[-\s]?Core/i);
         if (coreMatch) specs.cores = parseInt(coreMatch[1]);
@@ -442,7 +442,7 @@ class AmazonAPIService {
       },
     ];
 
-    return mockProducts.filter(product => 
+    return mockProducts.filter(product =>
       product.name.toLowerCase().includes(query.toLowerCase()) ||
       product.category.toLowerCase().includes(query.toLowerCase())
     );
