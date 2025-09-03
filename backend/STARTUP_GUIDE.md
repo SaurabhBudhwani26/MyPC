@@ -266,7 +266,8 @@ CORS_ORIGIN=http://localhost:8081,exp://192.168.29.22:8081
 
 For technical support or questions about API usage, refer to the interactive documentation or check the health endpoint for system status.
 
----
+
+
+
 
 **Ready to build some PCs!** 🖥️⚡  
-yes
