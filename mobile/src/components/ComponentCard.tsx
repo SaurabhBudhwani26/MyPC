@@ -32,17 +32,23 @@ export function ComponentCard({ component, onPress }: ComponentCardProps) {
 
   const handleAffiliateNavigation = async () => {
     try {
-      console.log('🔗 Opening affiliate link for:', component.name);
-      console.log('🌐 URL:', bestOffer.url);
+      console.log('💰 Generating affiliate link for:', component.name);
+      console.log('🌐 Original URL:', bestOffer.url);
+
+      // Generate affiliate link on-demand
+      const { simpleDealsService } = await import('../services/simple-deals-service');
+      const affiliateUrl = await simpleDealsService.generateAffiliateLink(bestOffer.url);
+      
+      console.log('🔗 Opening affiliate URL:', affiliateUrl);
 
       // Try to open the affiliate URL
-      const supported = await Linking.canOpenURL(bestOffer.url);
+      const supported = await Linking.canOpenURL(affiliateUrl);
 
       if (supported) {
-        await Linking.openURL(bestOffer.url);
+        await Linking.openURL(affiliateUrl);
         console.log('✅ Successfully opened affiliate link');
       } else {
-        console.warn('⚠️ Cannot open URL:', bestOffer.url);
+        console.warn('⚠️ Cannot open URL:', affiliateUrl);
         Alert.alert(
           'Cannot Open Link',
           'Unable to open the product link. Please check your internet connection.'

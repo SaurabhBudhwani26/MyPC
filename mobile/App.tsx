@@ -92,11 +92,78 @@ function MainApp({ onAuthRequired }: { onAuthRequired: () => void }) {
   const [showResults, setShowResults] = useState(false);
   const [affiliateDeals, setAffiliateDeals] = useState<PCComponent[]>([]);
   const [loadingDeals, setLoadingDeals] = useState(false);
+  
+  // Pagination state for search
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMoreResults, setHasMoreResults] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentSearchQuery, setCurrentSearchQuery] = useState('');
+  const [currentSearchCategory, setCurrentSearchCategory] = useState<string | undefined>(undefined);
+
+  // Store all results for client-side pagination
+  const [allSearchResults, setAllSearchResults] = useState<PCComponent[]>([]);
+  const [totalResultsLoaded, setTotalResultsLoaded] = useState(false);
+
+  // New paginated search function
+  const performPaginatedSearch = async (query: string, category: string | undefined, page: number) => {
+    try {
+      console.log(`🔍 Searching page ${page} for: "${query}"`);
+      
+      // For page 1, fetch fresh data from APIs
+      if (page === 1) {
+        console.log('🆕 Fetching fresh data from APIs...');
+        
+        // Import API services
+        const { amazonSearchAPIService } = await import('./src/services/amazon-search-api');
+        const { flipkartAPIService } = await import('./src/services/flipkart-api');
+        
+        // Search both APIs once
+        const [amazonResults, flipkartResults] = await Promise.all([
+          amazonSearchAPIService.searchProducts(query, category, 1), // 1 page only
+          flipkartAPIService.searchProducts(query, category, 1) // 1 page only
+        ]);
+        
+        const allResults = [...(amazonResults || []), ...(flipkartResults || [])];
+        console.log(`📦 Total results fetched: ${allResults.length}`);
+        
+        // Store all results for client-side pagination
+        setAllSearchResults(allResults);
+        setTotalResultsLoaded(true);
+        
+        // Return first page
+        const pageSize = 8; // Smaller page size for better UX
+        const pageResults = allResults.slice(0, pageSize);
+        const hasMore = allResults.length > pageSize;
+        
+        return { results: pageResults, hasMore, totalResults: allResults.length };
+      } else {
+        // For subsequent pages, use stored results (client-side pagination)
+        console.log(`📜 Loading page ${page} from cached results...`);
+        
+        const pageSize = 8;
+        const startIndex = (page - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        const pageResults = allSearchResults.slice(startIndex, endIndex);
+        const hasMore = endIndex < allSearchResults.length;
+        
+        return { results: pageResults, hasMore, totalResults: allSearchResults.length };
+      }
+    } catch (error) {
+      console.error('Error in paginated search:', error);
+      return { results: [], hasMore: false, totalResults: 0 };
+    }
+  };
 
   const handleSearch = async () => {
     if (searchQuery.trim()) {
-      const results = await searchComponents(searchQuery);
+      setCurrentSearchQuery(searchQuery);
+      setCurrentSearchCategory(undefined);
+      setCurrentPage(1);
+      setLoadingMore(false);
+      
+      const { results, hasMore } = await performPaginatedSearch(searchQuery, undefined, 1);
       setSearchResults(results);
+      setHasMoreResults(hasMore);
       setShowResults(true);
     } else {
       Alert.alert('Search', 'Please enter a component name');
@@ -104,10 +171,45 @@ function MainApp({ onAuthRequired }: { onAuthRequired: () => void }) {
   };
 
   const handleCategoryPress = async (category: string) => {
-    const results = await getComponentsByCategory(category);
+    setCurrentSearchQuery('');
+    setCurrentSearchCategory(category);
+    setCurrentPage(1);
+    setLoadingMore(false);
+    
+    const { results, hasMore } = await performPaginatedSearch(category, category, 1);
     setSearchResults(results);
+    setHasMoreResults(hasMore);
     setShowResults(true);
     setSearchQuery(''); // Clear search query when browsing by category
+  };
+
+  // Load more results when user scrolls to bottom
+  const loadMoreResults = async () => {
+    if (loadingMore || !hasMoreResults) return;
+    
+    setLoadingMore(true);
+    const nextPage = currentPage + 1;
+    const query = currentSearchQuery || currentSearchCategory || '';
+    
+    console.log(`📜 Loading more results - page ${nextPage}`);
+    
+    const { results, hasMore } = await performPaginatedSearch(query, currentSearchCategory, nextPage);
+    
+    setSearchResults(prevResults => [...prevResults, ...results]);
+    setCurrentPage(nextPage);
+    setHasMoreResults(hasMore);
+    setLoadingMore(false);
+  };
+
+  // Render footer for infinite scroll
+  const renderSearchFooter = () => {
+    if (!loadingMore) return null;
+    return (
+      <View style={styles.loadMoreContainer}>
+        <ActivityIndicator size="small" color={theme.colors.primary} />
+        <Text style={styles.loadMoreText}>Loading more results...</Text>
+      </View>
+    );
   };
 
   const handleTabPress = (tab: TabType) => {
@@ -161,6 +263,9 @@ function MainApp({ onAuthRequired }: { onAuthRequired: () => void }) {
               renderItem={({ item }) => <ComponentCard component={item} />}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 80 }}
+              onEndReached={loadMoreResults}
+              onEndReachedThreshold={0.1}
+              ListFooterComponent={renderSearchFooter}
             />
           ) : (
             <View style={styles.noResults}>
@@ -202,48 +307,80 @@ function MainApp({ onAuthRequired }: { onAuthRequired: () => void }) {
     </ScrollView>
   );
 
-  // Function to load real deals from RapidAPI and EarnKaro
-  const loadAffiliateDeals = async () => {
-    console.log('🎯 Starting real deals load from RapidAPI + EarnKaro...');
+  // Function to load simple deals - 15 Amazon + 15 Flipkart with EarnKaro affiliate links
+  const loadAffiliateDeals = async (isBackgroundLoad = false) => {
+    if (isBackgroundLoad) {
+      console.log('🚀 Background preloading deals on app startup...');
+    } else {
+      console.log('🎯 Loading simple deals (15 Amazon + 15 Flipkart)...');
+    }
+    
     setLoadingDeals(true);
     try {
-      // Import affiliate service to get real deals
-      const { affiliateService } = await import('./src/services/affiliate-service');
+      // Import simple deals service
+      const { simpleDealsService } = await import('./src/services/simple-deals-service');
 
-      // Get best deals from all sources (Amazon, Flipkart, EarnKaro)
-      const dealsComponents = await affiliateService.getBestDeals('gaming', 30);
-      console.log(`📦 Received ${dealsComponents?.length || 0} real deals`);
+      // Get 30 deals (15 Amazon + 15 Flipkart) with affiliate links
+      const dealsComponents = await simpleDealsService.getTodaysDeals();
+      console.log(`📦 Received ${dealsComponents?.length || 0} deals with affiliate links`);
 
       if (Array.isArray(dealsComponents) && dealsComponents.length > 0) {
-        // Filter for deals with good discounts
-        const goodDeals = dealsComponents.filter(component => {
-          const bestOffer = component.offers?.[0];
-          return bestOffer && (bestOffer.discount || 0) > 5;
-        });
-
-        setAffiliateDeals(goodDeals.length > 0 ? goodDeals : dealsComponents);
-        console.log(`✅ Successfully loaded ${goodDeals.length > 0 ? goodDeals.length : dealsComponents.length} real deals`);
+        setAffiliateDeals(dealsComponents);
+        if (isBackgroundLoad) {
+          console.log(`⚡ BACKGROUND: Pre-loaded ${dealsComponents.length} deals ready for Deals tab`);
+        } else {
+          console.log(`✅ Successfully loaded ${dealsComponents.length} deals (Amazon + Flipkart)`);
+        }
       } else {
-        console.log('⚠️ No deals received from affiliate service');
+        console.log('⚠️ No deals received from simple deals service');
         setAffiliateDeals([]);
       }
     } catch (error) {
-      console.error('❌ Error loading real deals:', error);
+      if (isBackgroundLoad) {
+        console.error('❌ Background deals preload failed (will retry when user opens Deals tab):', error);
+        // Don't show error to user for background load failures
+      } else {
+        console.error('❌ Error loading simple deals:', error);
+      }
       setAffiliateDeals([]);
     } finally {
       setLoadingDeals(false);
     }
   };
 
-  // Load deals when tab is first viewed (with proper dependency array)
+  // 🚀 OPTIMIZATION: Preload deals in background when app starts
+  useEffect(() => {
+    let isCancelled = false;
+
+    // Start loading deals in background immediately when app starts
+    console.log('🚀 App started - preloading deals in background for instant access...');
+    
+    // Small delay to let the app render first, then load deals in background
+    const preloadTimer = setTimeout(() => {
+      if (!isCancelled && affiliateDeals.length === 0 && !loadingDeals) {
+        loadAffiliateDeals(true).catch(error => {
+          if (!isCancelled) {
+            console.error('❌ Background preload error (will retry on demand):', error);
+          }
+        });
+      }
+    }, 1000); // 1 second delay to let app render smoothly first
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(preloadTimer);
+    };
+  }, []); // Run only once when app starts
+
+  // Fallback: Load deals if not already loaded when user opens Deals tab
   useEffect(() => {
     let isCancelled = false;
 
     if (activeTab === 'deals' && affiliateDeals.length === 0 && !loadingDeals) {
-      console.log('🎯 Deals tab activated, loading deals...');
-      loadAffiliateDeals().catch(error => {
+      console.log('🎯 Deals tab opened but no deals loaded - loading now...');
+      loadAffiliateDeals(false).catch(error => {
         if (!isCancelled) {
-          console.error('❌ Error in deals useEffect:', error);
+          console.error('❌ Error in deals fallback loading:', error);
         }
       });
     }
@@ -255,45 +392,88 @@ function MainApp({ onAuthRequired }: { onAuthRequired: () => void }) {
   }, [activeTab, affiliateDeals.length, loadingDeals]);
 
   const renderDealsTab = () => {
+    // For loading state, use ScrollView
+    if (loadingDeals) {
+      return (
+        <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>MyPC</Text>
+          </View>
 
+          <View style={styles.tabContent}>
+            <Text style={styles.sectionTitle}>Today's Best Deals 💰</Text>
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#3b82f6" />
+              <Text style={styles.loadingText}>🚀 Loading amazing deals...</Text>
+              <Text style={styles.loadingSubtext}>Finding best prices from Amazon & Flipkart</Text>
+            </View>
+          </View>
+          {/* Extra bottom spacing */}
+          <View style={{ height: 80 }} />
+        </ScrollView>
+      );
+    }
+
+    // For empty state, use ScrollView
+    if (affiliateDeals.length === 0) {
+      return (
+        <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>MyPC</Text>
+          </View>
+
+          <View style={styles.tabContent}>
+            <Text style={styles.sectionTitle}>Today's Best Deals 💰</Text>
+            <View style={styles.dealCard}>
+              <Text style={styles.dealTitle}>🚀 Preparing Deals...</Text>
+              <Text style={styles.dealDiscount}>Loading 15 Amazon + 15 Flipkart deals with affiliate links</Text>
+              <TouchableOpacity onPress={() => loadAffiliateDeals(false)} style={styles.retryButton}>
+                <Text style={styles.retryButtonText}>🔄 Load Now</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          {/* Extra bottom spacing */}
+          <View style={{ height: 80 }} />
+        </ScrollView>
+      );
+    }
+
+    // For deals list, use FlatList directly (enables pull-to-refresh)
     return (
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>MyPC</Text>
-        </View>
+      <View style={styles.container}>
+        <FlatList
+          data={affiliateDeals}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          refreshing={loadingDeals}
+          onRefresh={() => loadAffiliateDeals(false)} // Manual refresh
+          ListHeaderComponent={
+            <>
+              {/* Header */}
+              <View style={styles.header}>
+                <Text style={styles.headerTitle}>MyPC</Text>
+              </View>
 
-        <View style={styles.tabContent}>
-          <Text style={styles.sectionTitle}>Today's Best Deals 💰</Text>
-
-        {loadingDeals ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#3b82f6" />
-            <Text style={styles.loadingText}>Finding best deals...</Text>
-          </View>
-        ) : affiliateDeals.length > 0 ? (
-          <FlatList
-            data={affiliateDeals}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <ComponentCard component={item} />}
-            showsVerticalScrollIndicator={false}
-            refreshing={loadingDeals}
-            onRefresh={loadAffiliateDeals}
-            contentContainerStyle={{ paddingBottom: 80 }}
-          />
-        ) : (
-          <View style={styles.dealCard}>
-            <Text style={styles.dealTitle}>🔄 Loading Real Deals...</Text>
-            <Text style={styles.dealDiscount}>Coming from Flipkart & Amazon</Text>
-            <TouchableOpacity onPress={loadAffiliateDeals} style={styles.retryButton}>
-              <Text style={styles.retryButtonText}>🔄 Retry</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        </View>
-        {/* Extra bottom spacing */}
-        <View style={{ height: 80 }} />
-      </ScrollView>
+              <View style={styles.tabContent}>
+                <Text style={styles.sectionTitle}>Today's Best Deals 💰</Text>
+                
+                {/* Success indicator for preloaded deals */}
+                <View style={styles.dealsReadyBanner}>
+                  <Text style={styles.dealsReadyText}>⚡ {affiliateDeals.length} deals ready! Pull to refresh for latest.</Text>
+                </View>
+              </View>
+            </>
+          }
+          renderItem={({ item }) => (
+            <View style={{ paddingHorizontal: 24 }}>
+              <ComponentCard component={item} />
+            </View>
+          )}
+          contentContainerStyle={{ paddingBottom: 100 }} // Extra padding for bottom nav
+        />
+      </View>
     );
   };
 
@@ -657,6 +837,28 @@ const getStyles = (theme: any) => StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.5,
   },
+  loadingSubtext: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  // Deals Ready Banner Styles
+  dealsReadyBanner: {
+    backgroundColor: theme.isDark ? 'rgba(34, 197, 94, 0.2)' : '#f0fdf4',
+    borderWidth: 1,
+    borderColor: theme.isDark ? '#22c55e' : '#16a34a',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  dealsReadyText: {
+    fontSize: 14,
+    color: theme.isDark ? '#22c55e' : '#15803d',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   // Retry Button Styles
   retryButton: {
     backgroundColor: theme.colors.primary,
@@ -669,6 +871,19 @@ const getStyles = (theme: any) => StyleSheet.create({
   retryButtonText: {
     color: '#ffffff',
     fontSize: 14,
+    fontWeight: '500',
+  },
+  // Infinite scroll loading styles
+  loadMoreContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    marginTop: 16,
+  },
+  loadMoreText: {
+    fontSize: 14,
+    color: theme.colors.textMuted,
+    marginTop: 8,
     fontWeight: '500',
   },
 });

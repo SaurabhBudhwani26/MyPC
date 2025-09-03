@@ -676,66 +676,97 @@ if (result.success && result.build) {
     }
 
     setIsSearching(true);
-    // Hide all products while search is in progress
-    setAvailableComponents([]);
+    // Keep existing results visible during search (better UX)
+    // setAvailableComponents([]);  // Don't hide results immediately
     // Reset pagination for search results
     setCurrentPage(1);
 
     try {
-      // Fetch all 3 pages from Amazon API before showing any results
+      // OPTIMIZATION: Fetch page 1 first and show results immediately
+      console.log('⚡ Fast search: Fetching page 1 results first...');
+      
+      const firstPageResult = await apiService.searchComponentsPaginated(query, 1, {
+        category: selectedCategory || undefined,
+      });
+
       let allApiComponents: PCComponent[] = [];
-
-      console.log('🔄 Fetching 3 pages of results before prioritization...');
-
-      for (let page = 1; page <= 3; page++) {
-        try {
-          console.log(`📄 Fetching page ${page}/3...`);
-          const pageResult = await apiService.searchComponentsPaginated(query, page, {
-            category: selectedCategory || undefined,
-          });
-
-          if (pageResult.components && pageResult.components.length > 0) {
-            allApiComponents = [...allApiComponents, ...pageResult.components];
-            console.log(`✅ Page ${page}: Added ${pageResult.components.length} components (total: ${allApiComponents.length})`);
-          }
-
-          // If this page has no more results, stop fetching
-          if (!pageResult.hasMore) {
-            console.log(`🏁 No more results after page ${page}, stopping fetch`);
-            break;
-          }
-        } catch (pageError) {
-          console.error(`❌ Error fetching page ${page}:`, pageError);
-          // Continue to next page even if one fails
-        }
+      
+      if (firstPageResult.components && firstPageResult.components.length > 0) {
+        allApiComponents = [...firstPageResult.components];
+        console.log(`✅ Page 1: Got ${firstPageResult.components.length} components - showing immediately`);
+        
+        // Show page 1 results immediately (Progressive Enhancement)
+        const firstPageSearchResults = performAdvancedLocalSearch(allApiComponents, query);
+        const paginatedResults = firstPageSearchResults.slice(0, COMPONENTS_PER_PAGE);
+        
+        setAvailableComponents(paginatedResults);
+        setTotalComponents(firstPageSearchResults.length);
+        setHasMoreComponents(firstPageResult.hasMore || firstPageSearchResults.length > COMPONENTS_PER_PAGE);
+        setAllComponents(firstPageSearchResults);
+        
+        console.log(`⚡ FAST: Showing ${paginatedResults.length} results from page 1 immediately`);
       }
 
-      console.log('🎯 All pages fetched, starting prioritization...');
+      // BACKGROUND: Fetch additional pages to improve results (non-blocking)
+      if (firstPageResult.hasMore) {
+        console.log('🔄 Background loading: Fetching pages 2-3 to improve results...');
+        
+        // Continue fetching pages 2-3 in background (non-blocking)
+        const backgroundPages = [2, 3];
+        const backgroundPromises = backgroundPages.map(async (page) => {
+          try {
+            console.log(`📄 Background: Fetching page ${page}/3...`);
+            const pageResult = await apiService.searchComponentsPaginated(query, page, {
+              category: selectedCategory || undefined,
+            });
+            
+            if (pageResult.components && pageResult.components.length > 0) {
+              console.log(`✅ Background page ${page}: Added ${pageResult.components.length} components`);
+              return pageResult.components;
+            }
+            return [];
+          } catch (pageError) {
+            console.error(`❌ Background error on page ${page}:`, pageError);
+            return [];
+          }
+        });
 
-      let searchResults: PCComponent[] = [];
-
-      if (allApiComponents.length > 0) {
-        // Apply local relevance scoring to all API results from all pages
-        searchResults = performAdvancedLocalSearch(allApiComponents, query);
-      } else {
-        // Fallback to enhanced local search
-        searchResults = performAdvancedLocalSearch(allComponents, query);
+        // Wait for background pages and update results
+        Promise.all(backgroundPromises).then((backgroundResults) => {
+          const additionalComponents = backgroundResults.flat();
+          if (additionalComponents.length > 0) {
+            const updatedComponents = [...allApiComponents, ...additionalComponents];
+            console.log(`🔄 Background complete: Total ${updatedComponents.length} components from all pages`);
+            
+            // Update with all results from pages 1-3
+            const finalSearchResults = performAdvancedLocalSearch(updatedComponents, query);
+            const finalPaginatedResults = finalSearchResults.slice(0, COMPONENTS_PER_PAGE);
+            
+            setAvailableComponents(finalPaginatedResults);
+            setTotalComponents(finalSearchResults.length);
+            setHasMoreComponents(finalSearchResults.length > COMPONENTS_PER_PAGE);
+            setAllComponents(finalSearchResults);
+            
+            console.log(`🏆 Final update: Showing ${finalPaginatedResults.length} results from ${updatedComponents.length} total components`);
+          }
+        }).catch((error) => {
+          console.error('❌ Background pages failed:', error);
+          // First page results are already shown, so this doesn't affect UX
+        });
       }
 
-      console.log('✨ Prioritization complete! Showing results...');
+      // If no results from page 1, try fallback
+      if (allApiComponents.length === 0) {
+        console.log('📭 No API results, using local fallback search...');
+        const localResults = performAdvancedLocalSearch(allComponents, query);
+        const paginatedResults = localResults.slice(0, COMPONENTS_PER_PAGE);
+        
+        setAvailableComponents(paginatedResults);
+        setTotalComponents(localResults.length);
+        setHasMoreComponents(localResults.length > COMPONENTS_PER_PAGE);
+        setAllComponents(localResults);
+      }
 
-      // Only show results after ALL pages are fetched and prioritization is complete
-      const paginatedResults = searchResults.slice(0, COMPONENTS_PER_PAGE);
-      setTotalComponents(searchResults.length);
-      setHasMoreComponents(searchResults.length > COMPONENTS_PER_PAGE);
-
-      // Store full search results for pagination
-      setAllComponents(searchResults);
-
-      // Set results only after everything is processed
-      setAvailableComponents(paginatedResults);
-
-      console.log(`🏆 Search completed: fetched ${allApiComponents.length} components from 3 pages, prioritized to ${searchResults.length} results, showing first ${paginatedResults.length}`);
     } catch (error) {
       console.error('❌ Error searching components:', error);
       // Enhanced fallback search with relevance scoring

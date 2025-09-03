@@ -14,7 +14,7 @@ interface PCComponent {
   averagePrice: number;
   priceRange: { min: number; max: number };
   lastUpdated: string;
-  specifications: Record<string, any>;
+  specifications: Record<string, string | number | boolean>;
   offers: ComponentOffer[];
 }
 
