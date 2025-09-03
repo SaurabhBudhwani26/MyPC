@@ -126,15 +126,15 @@ class EarnKaroAPIService {
 
   async searchDeals(query: string, category?: string): Promise<PCComponent[]> {
     if (!this.isConfigured) {
-      console.log('🎭 EarnKaro API not configured, showing enhanced mock deals');
-      return
+      console.log('🎭 EarnKaro API not configured, no deals available');
+      return [];
     }
 
     // Check if using demo/test API key
     if (this.config.apiToken.includes('test_') || this.config.apiToken.includes('demo_')) {
-      console.log('📝 Using demo API key, showing enhanced mock deals with real API structure simulation');
+      console.log('📝 Using demo API key, no real deals available');
       console.log('🔑 To use real EarnKaro data, get your API key from: https://www.earnkaro.com/');
-      return 
+      return [];
     }
 
     try {
@@ -142,9 +142,21 @@ class EarnKaroAPIService {
       console.log('🔍 Testing EarnKaro API connectivity...');
       await this.testAPIConnectivity();
       
-      // For now, return mock deals as we need to understand the real API structure
-      console.log('ℹ️ API connected successfully! Using enhanced mock data while we understand EarnKaro API structure');
-      return
+      // Try to search for real deals using EarnKaro API
+      console.log('🔍 Searching EarnKaro for real deals...');
+      const dealsResponse = await this.performDealsSearch(query, category);
+      
+      if (dealsResponse.status === 'success' && dealsResponse.data?.deals) {
+        const pcComponents = dealsResponse.data.deals
+          .filter(deal => this.isPCComponent(deal.title, deal.category))
+          .map(deal => this.transformEarnKaroDeal(deal));
+        
+        console.log(`💰 EarnKaro found ${pcComponents.length} PC component deals`);
+        return pcComponents;
+      } else {
+        console.log('📭 No deals found from EarnKaro API');
+        return [];
+      }
       
     } catch (error) {
       console.error('❌ Error connecting to EarnKaro API:', error);
@@ -154,8 +166,8 @@ class EarnKaroAPIService {
         console.log('📝 Update EXPO_PUBLIC_EARNKARO_API_KEY in your .env file');
       }
       
-      console.log('🛠️ Falling back to enhanced mock deals');
-      return
+      console.log('📭 No EarnKaro deals available');
+      return [];
     }
   }
 

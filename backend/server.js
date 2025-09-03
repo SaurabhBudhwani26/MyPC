@@ -182,12 +182,24 @@ app.use((err, req, res, next) => {
 
 // Start server
 const server = app.listen(PORT, '0.0.0.0', () => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const baseUrl = isProduction ? 'https://mypc-production.up.railway.app' : `http://localhost:${PORT}`;
+  
   console.log(`🚀 MyPC Backend API running on port ${PORT}`);
   console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-  console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
-  console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth`);
-  console.log(`🔧 PC Builder endpoints: http://localhost:${PORT}/api/pc-builder`);
+  
+  if (isProduction) {
+    console.log(`🌐 Production deployment ready`);
+    console.log(`🔗 Health check: ${baseUrl}/health`);
+    console.log(`📚 API Documentation: ${baseUrl}/api-docs`);
+    console.log(`🔐 Auth endpoints: ${baseUrl}/api/auth`);
+    console.log(`🔧 PC Builder endpoints: ${baseUrl}/api/pc-builder`);
+  } else {
+    console.log(`🔗 Health check: ${baseUrl}/health`);
+    console.log(`📚 API Documentation: ${baseUrl}/api-docs`);
+    console.log(`🔐 Auth endpoints: ${baseUrl}/api/auth`);
+    console.log(`🔧 PC Builder endpoints: ${baseUrl}/api/pc-builder`);
+  }
 });
 
 // Graceful shutdown

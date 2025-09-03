@@ -55,32 +55,32 @@ class ApiService {
     limit?: number;
   }): Promise<PCComponent[]> {
     try {
-      // Use Amazon API directly for all product search (no limits)
-      const { amazonSearchAPIService } = await import('./amazon-search-api');
+      console.log(`🔍 Searching backend for: ${query}`);
       
-      console.log(`🛒 Searching Amazon for ALL results: ${query}`);
-      const components = await amazonSearchAPIService.searchProducts(query, filters?.category);
+      const params = new URLSearchParams();
+      params.append('query', query);
+      if (filters?.category) params.append('category', filters.category);
+      if (filters?.minPrice) params.append('minPrice', filters.minPrice.toString());
+      if (filters?.maxPrice) params.append('maxPrice', filters.maxPrice.toString());
+      if (filters?.brand) params.append('brand', filters.brand);
+      if (filters?.limit) params.append('limit', filters.limit.toString());
       
-      console.log(`📦 Amazon returned ${components.length} total components`);
+      const response = await apiClient.get(`/components/search?${params.toString()}`);
       
-      // Filter by category if specified
-      if (filters?.category) {
-        const filtered = components.filter(comp => 
-          comp.category?.toLowerCase() === filters.category?.toLowerCase()
-        );
-        console.log(`🎯 Filtered to ${filtered.length} components for category: ${filters.category}`);
-        return filtered;
+      if (response.data.success && response.data.data) {
+        console.log(`📦 Backend returned ${response.data.data.components.length} components`);
+        return response.data.data.components;
+      } else {
+        throw new Error(response.data.message || 'Search failed');
       }
-      
-      return components;
     } catch (error) {
-      console.error('Error searching Amazon components:', error);
-      // Return mock data as fallback
+      console.error('Error searching backend components:', error);
+      console.log('🚑 Falling back to mock data...');
       return this.getMockSearchResults(query);
     }
   }
 
-  // Paginated search for infinite scroll
+  // Paginated search for infinite scroll using multi-source affiliate service
   async searchComponentsPaginated(
     query: string, 
     page: number = 1, 
@@ -97,42 +97,61 @@ class ApiService {
     currentPage: number;
   }> {
     try {
-      // Use Amazon API paginated search
-      const { amazonSearchAPIService } = await import('./amazon-search-api');
+      // Use multi-source affiliate service (Amazon + Flipkart + EarnKaro)
+      const { affiliateService } = await import('./affiliate-service');
       
-      console.log(`🔍 Paginated search: "${query}" - Page ${page}`);
-      const result = await amazonSearchAPIService.searchProductsPaginated(query, page, filters?.category);
+      const resultsPerPage = 20;
+      const startIndex = (page - 1) * resultsPerPage;
       
-      let components = result.components;
-      console.log(`📦 Page ${page}: ${components.length} components from Amazon`);
+      console.log(`🔍 Multi-source paginated search: "${query}" - Page ${page}`);
       
-      // Apply additional filters if specified
-      if (filters?.minPrice || filters?.maxPrice) {
-        components = components.filter(comp => {
-          const price = comp.averagePrice || 0;
-          const minOk = !filters.minPrice || price >= filters.minPrice;
-          const maxOk = !filters.maxPrice || price <= filters.maxPrice;
-          return minOk && maxOk;
-        });
-        console.log(`💰 After price filter: ${components.length} components`);
-      }
+      // Get results from all sources combined
+      const searchOptions = {
+        query,
+        category: filters?.category,
+        priceRange: (filters?.minPrice || filters?.maxPrice) ? {
+          min: filters?.minPrice || 0,
+          max: filters?.maxPrice || 999999
+        } : undefined,
+        sortBy: 'popular' as const,
+        limit: resultsPerPage * Math.max(page, 3) // Get more results for pagination
+      };
       
+      const allResults = await affiliateService.searchComponents(searchOptions);
+      
+      // Apply brand filter if specified
+      let filteredResults = allResults;
       if (filters?.brand) {
-        components = components.filter(comp => 
+        filteredResults = allResults.filter(comp => 
           comp.brand?.toLowerCase().includes(filters.brand!.toLowerCase())
         );
-        console.log(`🏷️ After brand filter: ${components.length} components`);
+        console.log(`🏷️ After brand filter: ${filteredResults.length} components`);
       }
       
+      // Calculate pagination
+      const totalComponents = filteredResults.length;
+      const paginatedComponents = filteredResults.slice(startIndex, startIndex + resultsPerPage);
+      const hasMore = startIndex + resultsPerPage < totalComponents;
+      
+      console.log(`📦 Page ${page}: Showing ${paginatedComponents.length}/${totalComponents} components from Amazon + Flipkart + EarnKaro`);
+      
+      // Log source breakdown
+      const sourceCounts = paginatedComponents.reduce((acc, comp) => {
+        const retailer = comp.offers?.[0]?.retailer || 'Unknown';
+        acc[retailer] = (acc[retailer] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      console.log(`📊 Source breakdown for page ${page}:`, sourceCounts);
+      
       return {
-        components,
-        totalComponents: result.totalProducts,
-        hasMore: result.hasMore,
-        currentPage: result.currentPage
+        components: paginatedComponents,
+        totalComponents,
+        hasMore,
+        currentPage: page
       };
       
     } catch (error) {
-      console.error(`❌ Error in paginated search (page ${page}):`, error);
+      console.error(`❌ Error in multi-source paginated search (page ${page}):`, error);
       return {
         components: this.getMockSearchResults(query).slice(0, 20),
         totalComponents: 100,
@@ -154,46 +173,23 @@ class ApiService {
 
   async getComponentsByCategory(category: string): Promise<PCComponent[]> {
     try {
-      // Use Amazon API directly for all category results (no limits)
-      const { amazonSearchAPIService } = await import('./amazon-search-api');
-      let searchQuery = category;
+      console.log(`🎯 Fetching backend components for category: ${category}`);
       
-      // Map category to better search terms for Amazon
-      switch (category.toLowerCase()) {
-        case 'cpu':
-          searchQuery = 'processor intel amd ryzen core i3 i5 i7 i9';
-          break;
-        case 'gpu':
-          searchQuery = 'graphics card rtx gtx radeon nvidia amd';
-          break;
-        case 'ram':
-          searchQuery = 'memory ram ddr4 ddr5 corsair gskill crucial';
-          break;
-        case 'motherboard':
-          searchQuery = 'motherboard mainboard asus msi gigabyte asrock';
-          break;
-        case 'storage':
-          searchQuery = 'ssd nvme hard drive storage samsung wd seagate';
-          break;
-        case 'psu':
-          searchQuery = 'power supply psu smps corsair seasonic evga';
-          break;
-        case 'case':
-          searchQuery = 'pc cabinet case tower mid tower full tower';
-          break;
-        case 'cooling':
-          searchQuery = 'cpu cooler fan liquid cooling aio corsair noctua';
-          break;
+      const params = new URLSearchParams();
+      params.append('category', category);
+      params.append('limit', '50'); // Get more results for category browsing
+      
+      const response = await apiClient.get(`/components/search?${params.toString()}`);
+      
+      if (response.data.success && response.data.data) {
+        console.log(`📦 Backend returned ${response.data.data.components.length} components for category: ${category}`);
+        return response.data.data.components;
+      } else {
+        throw new Error(response.data.message || 'Category search failed');
       }
-      
-      console.log(`🛒 Fetching ALL Amazon results for category: ${category}`);
-      const components = await amazonSearchAPIService.searchProducts(searchQuery, category);
-      
-      console.log(`📦 Category ${category}: Found ${components.length} total Amazon components`);
-      return components;
     } catch (error) {
-      console.error('Error fetching Amazon components by category:', error);
-      // Return mock data as fallback
+      console.error('Error fetching backend components by category:', error);
+      console.log('🚑 Falling back to mock data...');
       return this.getMockCategoryResults(category);
     }
   }
@@ -234,56 +230,24 @@ class ApiService {
     }
   }
 
-  // Deals and Price Alerts - Get all Amazon deals
+  // Get Today's Deals from Backend
   async getTodayDeals(): Promise<ComponentOffer[]> {
+    console.log('🎯 Fetching today\'s deals from backend...');
+    
     try {
-      // Get deals from Amazon API directly
-      const { amazonSearchAPIService } = await import('./amazon-search-api');
+      const response = await apiClient.get('/deals/today');
       
-      console.log('🎯 Fetching ALL Amazon deals...');
-      const dealQueries = [
-        'gaming laptop deal',
-        'graphics card deal', 
-        'processor deal',
-        'ram memory deal',
-        'ssd nvme deal',
-        'motherboard deal'
-      ];
-      
-      let allDeals: ComponentOffer[] = [];
-      
-      for (const query of dealQueries) {
-        try {
-          const components = await amazonSearchAPIService.searchProducts(query);
-          
-          // Convert components to offers format
-          const offers: ComponentOffer[] = components
-            .filter(comp => comp.offers && comp.offers.length > 0)
-            .flatMap(comp => comp.offers.map(offer => ({
-              ...offer,
-              componentId: comp.id,
-              componentName: comp.name,
-              componentImage: comp.imageUrl
-            })));
-          
-          allDeals = [...allDeals, ...offers];
-        } catch (err) {
-          console.warn(`Failed to fetch deals for: ${query}`, err);
-        }
+      if (response.data.success && response.data.data) {
+        const deals = response.data.data.deals || [];
+        console.log(`🎉 Backend returned ${deals.length} deals`);
+        return deals;
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch deals');
       }
-      
-      // Sort by discount and return unique deals
-      const uniqueDeals = allDeals
-        .filter((deal, index, arr) => 
-          arr.findIndex(d => d.componentId === deal.componentId) === index
-        )
-        .sort((a, b) => (b.discount || 0) - (a.discount || 0));
-      
-      console.log(`🎉 Found ${uniqueDeals.length} total Amazon deals`);
-      return uniqueDeals;
     } catch (error) {
-      console.error('Error fetching Amazon deals:', error);
-      return this.getMockDeals();
+      console.error('❌ Error fetching backend deals:', error);
+      console.log('🚑 Falling back to mock deals...');
+      return this.getSimpleMockDeals();
     }
   }
 
@@ -410,6 +374,57 @@ class ApiService {
         }
       }
     ];
+  }
+  
+  private getSimpleMockDeals(): ComponentOffer[] {
+    const mockDeals: ComponentOffer[] = [];
+    
+    // 15 Amazon deals
+    for (let i = 0; i < 15; i++) {
+      mockDeals.push({
+        id: `amazon-mock-${i}`,
+        componentId: `comp-amazon-${i}`,
+        componentName: `Gaming Component ${i + 1}`,
+        componentImage: 'https://via.placeholder.com/100',
+        retailer: 'Amazon',
+        price: 5000 + (i * 500),
+        originalPrice: 6000 + (i * 600),
+        discount: 15 + (i % 10),
+        url: `https://amazon.in/deal-${i}`,
+        availability: 'in_stock',
+        lastUpdated: new Date().toISOString(),
+        shipping: {
+          cost: 0,
+          estimatedDays: 2,
+          free: true
+        }
+      });
+    }
+    
+    // 15 Flipkart deals
+    for (let i = 0; i < 15; i++) {
+      mockDeals.push({
+        id: `flipkart-mock-${i}`,
+        componentId: `comp-flipkart-${i}`,
+        componentName: `PC Component ${i + 1}`,
+        componentImage: 'https://via.placeholder.com/100',
+        retailer: 'Flipkart',
+        price: 4500 + (i * 400),
+        originalPrice: 5500 + (i * 500),
+        discount: 10 + (i % 15),
+        url: `https://flipkart.com/deal-${i}`,
+        availability: 'in_stock',
+        lastUpdated: new Date().toISOString(),
+        shipping: {
+          cost: 0,
+          estimatedDays: 3,
+          free: true
+        }
+      });
+    }
+    
+    // Sort by discount (highest first)
+    return mockDeals.sort((a, b) => (b.discount || 0) - (a.discount || 0));
   }
 }
 

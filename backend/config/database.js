@@ -6,6 +6,17 @@ const connectDB = async () => {
       ? process.env.MONGODB_TEST_URI 
       : process.env.MONGODB_URI;
 
+    // Validate that we have a MongoDB URI
+    if (!mongoURI) {
+      throw new Error(
+        `MongoDB URI is not defined. Please set ${process.env.NODE_ENV === 'test' ? 'MONGODB_TEST_URI' : 'MONGODB_URI'} in your environment variables.`
+      );
+    }
+
+    console.log(`🔗 Connecting to MongoDB...`);
+    console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🗄️ Database: ${mongoURI.split('/').pop()?.split('?')[0] || 'unknown'}`);
+
     const conn = await mongoose.connect(mongoURI, {
       // Remove deprecated options that are now defaults
       // useNewUrlParser: true,

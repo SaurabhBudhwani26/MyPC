@@ -1,45 +1,43 @@
 import { PCComponent, ComponentOffer } from '../types';
 
-// Flipkart API Configuration
+// Flipkart RapidAPI Configuration
 interface FlipkartAPIConfig {
-  affiliateId: string;
-  affiliateToken: string;
-  apiUrl: string;
+  apiKey: string;
+  apiHost: string;
+  baseUrl: string;
 }
 
-// Flipkart API Response Types
-interface FlipkartProduct {
-  productId: string;
-  productUrl: string;
+// Flipkart RapidAPI Response Types
+interface FlipkartProductResponse {
+  pid: string;
+  itemId: string;
+  listingId: string;
+  brand: string;
   title: string;
-  productBrand?: string;
-  productCategory?: string;
-  imageUrl?: string;
-  images?: {
-    '200x200'?: string;
-    '400x400'?: string;
+  keySpecs: string[];
+  availability: string;
+  url: string;
+  mrp: number;
+  price: number;
+  rating: {
+    average: number;
+    count: number;
+    reviewCount: number;
+    breakup: number[];
   };
-  sellingPrice?: {
-    amount: number;
-    currency: string;
-  };
-  mrp?: {
-    amount: number;
-    currency: string;
-  };
-  discount?: string;
-  availability?: boolean;
-  inStock?: boolean;
-  productRating?: string;
-  totalRatingCount?: number;
-  productDescription?: string;
-  specifications?: Record<string, any>;
+  images: string[];
 }
 
 interface FlipkartSearchResponse {
-  products?: FlipkartProduct[];
-  totalResults?: number;
-  nextUrl?: string;
+  success: boolean;
+  data: {
+    products: FlipkartProductResponse[];
+    total: number;
+    currentPage: number;
+    hasNextPage: boolean;
+    query: string;
+    sortBy: string;
+  };
 }
 
 class FlipkartAPIService {
@@ -48,198 +46,204 @@ class FlipkartAPIService {
 
   constructor() {
     this.config = {
-      affiliateId: process.env.FLIPKART_AFFILIATE_ID || '',
-      affiliateToken: process.env.FLIPKART_AFFILIATE_TOKEN || '',
-      apiUrl: process.env.FLIPKART_API_URL || 'https://affiliate-api.flipkart.net',
+      apiKey: process.env.EXPO_PUBLIC_RAPIDAPI_KEY || '',
+      apiHost: 'real-time-flipkart-data2.p.rapidapi.com',
+      baseUrl: 'https://real-time-flipkart-data2.p.rapidapi.com',
     };
 
-    this.isConfigured = !!(
-      this.config.affiliateId &&
-      this.config.affiliateToken
-    );
+    this.isConfigured = !!this.config.apiKey && this.config.apiKey !== '';
 
     if (process.env.EXPO_PUBLIC_DEBUG_MODE === 'true') {
-      console.log('🛍️ Flipkart API Service initialized', {
+      console.log('🛒 Flipkart Real-Time API Service initialized', {
         configured: this.isConfigured,
-        apiUrl: this.config.apiUrl,
+        apiHost: this.config.apiHost,
+        hasApiKey: !!this.config.apiKey,
+        apiKeyLength: this.config.apiKey?.length || 0,
       });
     }
   }
 
-  async searchComponents(query: string, category?: string): Promise<PCComponent[]> {
-    // Check if using demo/fake credentials
-    const isDemoMode = this.config.affiliateId === 'demo_affiliate_id' || 
-                       this.config.affiliateToken === 'demo_affiliate_token';
-    
-    if (!this.isConfigured || isDemoMode) {
-      if (isDemoMode) {
-        console.log('🎭 Flipkart API in demo mode, using enhanced mock data');
-      } else {
-        console.warn('Flipkart API not configured, using mock data');
-      }
-      return
+  async searchProducts(query: string, category?: string, pages: number = 2): Promise<PCComponent[]> {
+    if (!this.isConfigured) {
+      console.log('🛒 Flipkart API not configured, skipping');
+      return [];
     }
 
     try {
-      const flipkartCategory = this.mapCategoryToFlipkartCategory(category);
-      const response = await this.performSearch(query, flipkartCategory);
+      console.log(`🔍 Searching Flipkart for: "${query}" (fetching ${pages} pages)`);
       
-      if (!response.products) {
-        return [];
-      }
+      let allComponents: PCComponent[] = [];
+      
+      // Fetch multiple pages for more results
+      for (let page = 1; page <= pages; page++) {
+        console.log(`📄 Fetching page ${page} of ${pages}...`);
+        
+        const searchUrl = new URL(`${this.config.baseUrl}/product-search`);
+        searchUrl.searchParams.append('q', query);
+        searchUrl.searchParams.append('page', page.toString());
+        
+        if (category) {
+          searchUrl.searchParams.append('category', this.mapToFlipkartCategory(category));
+        }
 
-      return response.products.map(item => this.transformFlipkartProduct(item));
+        console.log(`🌐 Making request to: ${searchUrl.toString()}`);
+
+        const response = await fetch(searchUrl.toString(), {
+          method: 'GET',
+          headers: {
+            'X-RapidAPI-Host': this.config.apiHost,
+            'X-RapidAPI-Key': this.config.apiKey,
+          },
+        });
+
+        console.log(`📊 API Response Status: ${response.status}`);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.log(`❌ Page ${page}: API Error Response:`, errorText);
+          continue;
+        }
+
+        const data: FlipkartSearchResponse = await response.json();
+        console.log(`📦 Raw API Response for page ${page}:`, {
+          success: data.success,
+          total_products: data.data?.total || 0,
+          products_returned: data.data?.products?.length || 0
+        });
+
+        if (data.success && data.data?.products) {
+          // Filter for PC components and convert to our format
+          const pcComponents = data.data.products
+            .filter(product => this.isPCComponent(product.title))
+            .map(product => this.transformFlipkartProduct(product));
+
+          console.log(`🗞️ Page ${page}: Filtered to ${pcComponents.length} PC components`);
+          allComponents = [...allComponents, ...pcComponents];
+          console.log(`📦 Page ${page}: Added ${pcComponents.length} components. Total: ${allComponents.length}`);
+        } else {
+          console.log(`📭 Page ${page}: No products found`);
+        }
+      }
+      
+      console.log(`✨ Final Flipkart result: ${allComponents.length} total PC components from ${pages} pages`);
+      return allComponents;
+
     } catch (error) {
-      console.error('Error searching Flipkart:', error);
-      return
+      console.error('❌ Error searching Flipkart:', error);
+      return [];
     }
   }
 
-  async getProductDetails(productId: string): Promise<PCComponent | null> {
+  async getProductDetails(productId: string, pincode: string = '400001'): Promise<PCComponent | null> {
     if (!this.isConfigured) {
+      console.log('🛒 Flipkart API not configured');
       return null;
     }
 
     try {
-      const response = await this.performGetProduct(productId);
-      if (!response) return null;
-      return this.transformFlipkartProduct(response);
+      const detailsUrl = new URL(`${this.config.baseUrl}/product-details`);
+      detailsUrl.searchParams.append('pid', productId);
+      detailsUrl.searchParams.append('pincode', pincode);
+
+      const response = await fetch(detailsUrl.toString(), {
+        method: 'GET',
+        headers: {
+          'X-RapidAPI-Host': this.config.apiHost,
+          'X-RapidAPI-Key': this.config.apiKey,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Flipkart Product Details API error: ${response.status}`);
+      }
+
+      const product: FlipkartProductResponse = await response.json();
+      
+      if (this.isPCComponent(product.title)) {
+        return this.transformFlipkartProduct(product);
+      }
+
+      return null;
     } catch (error) {
       console.error('Error getting Flipkart product details:', error);
       return null;
     }
   }
 
-  generateAffiliateLink(productId: string, productUrl?: string): string {
-    if (!productUrl) {
-      productUrl = `https://www.flipkart.com/p/${productId}`;
-    }
+  private transformFlipkartProduct(product: FlipkartProductResponse): PCComponent {
+    const price = product.price;
+    const originalPrice = product.mrp;
+    const discount = originalPrice > 0 ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
 
-    const affiliateUrl = new URL(productUrl);
-    
-    if (this.config.affiliateId) {
-      affiliateUrl.searchParams.append('affid', this.config.affiliateId);
-    }
-    
-    affiliateUrl.searchParams.append('affExtParam1', 'my-pc-app');
-    affiliateUrl.searchParams.append('affExtParam2', 'mobile');
-    
-    return affiliateUrl.toString();
-  }
-
-  private async performSearch(query: string, category?: string): Promise<FlipkartSearchResponse> {
-    const url = new URL(`${this.config.apiUrl}/affiliate/1.0/search.json`);
-    url.searchParams.append('query', query);
-    
-    if (category) {
-      url.searchParams.append('category', category);
-    }
-    
-    const response = await fetch(url.toString(), {
-      headers: {
-        'Fk-Affiliate-Id': this.config.affiliateId,
-        'Fk-Affiliate-Token': this.config.affiliateToken,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Flipkart API error: ${response.status} ${response.statusText}`);
-    }
-
-    return await response.json();
-  }
-
-  private async performGetProduct(productId: string): Promise<FlipkartProduct | null> {
-    const url = `${this.config.apiUrl}/affiliate/1.0/product.json`;
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Fk-Affiliate-Id': this.config.affiliateId,
-        'Fk-Affiliate-Token': this.config.affiliateToken,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ productId }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Flipkart API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data.product || null;
-  }
-
-  private transformFlipkartProduct(item: FlipkartProduct): PCComponent {
-    const title = item.title || 'Unknown Product';
-    const brand = item.productBrand || this.extractBrand(title);
-    const category = this.extractCategory(title, item.productCategory);
-    
-    const price = item.sellingPrice?.amount || 0;
-    const originalPrice = item.mrp?.amount;
-    const discountText = item.discount;
-    
-    let discount: number | undefined;
-    if (discountText) {
-      const discountMatch = discountText.match(/(\d+)%/);
-      if (discountMatch) {
-        discount = parseInt(discountMatch[1]);
-      }
-    }
-
-    const availability = (item.availability && item.inStock) ? 'in_stock' : 'out_of_stock';
-    
     const offers: ComponentOffer[] = [{
-      id: `flipkart-${item.productId}`,
-      componentId: item.productId,
+      id: `flipkart-${product.pid}`,
+      componentId: product.pid,
       retailer: 'Flipkart',
       price: price,
       originalPrice: originalPrice,
       discount: discount,
-      availability: this.mapAvailability(availability),
-      url: this.generateAffiliateLink(item.productId, item.productUrl),
+      availability: product.availability === 'IN_STOCK' ? 'in_stock' : 'limited_stock',
+      url: product.url,
       lastUpdated: new Date().toISOString(),
       shipping: {
-        cost: 40,
+        cost: 0,
         estimatedDays: 3,
-        free: price > 500,
+        free: true,
       },
+      seller: 'Flipkart',
     }];
 
+    const category = this.extractCategory(product.title);
+    const brand = this.extractBrand(product.title, product.brand);
+    
     return {
-      id: item.productId,
-      name: title,
+      id: product.pid,
+      name: product.title,
       brand: brand,
       category: category,
-      model: this.extractModel(title),
-      description: item.productDescription || title,
-      imageUrl: item.imageUrl || item.images?.['400x400'] || item.images?.['200x200'],
-      rating: item.productRating ? parseFloat(item.productRating) : undefined,
-      reviewCount: item.totalRatingCount,
-      availability: this.mapAvailability(availability),
+      model: this.extractModel(product.title),
+      description: product.keySpecs?.join(', ') || product.title,
+      imageUrl: product.images?.[0] || '',
+      rating: product.rating?.average || undefined,
+      reviewCount: product.rating?.reviewCount || 0,
+      availability: product.availability === 'IN_STOCK' ? 'in_stock' : 'limited_stock',
       averagePrice: price,
-      priceRange: { min: price, max: originalPrice || price },
+      priceRange: { min: price, max: originalPrice },
       lastUpdated: new Date().toISOString(),
-      specifications: item.specifications || this.extractSpecifications(title, item.productDescription || ''),
+      specifications: this.extractSpecifications(product.title, product.keySpecs?.join(' ') || ''),
       offers: offers,
       discount: discount,
-      url: this.generateAffiliateLink(item.productId, item.productUrl),
+      url: product.url,
       price: price
     };
   }
 
-  private mapCategoryToFlipkartCategory(category?: string): string | undefined {
-    const categoryMap: Record<string, string> = {
-      'CPU': 'computers/computer-components/processors',
-      'GPU': 'computers/computer-components/graphic-cards',
-      'RAM': 'computers/computer-components/ram',
-      'Motherboard': 'computers/computer-components/motherboards',
-      'Storage': 'computers/storage',
-      'PSU': 'computers/computer-components/smps',
-      'Case': 'computers/computer-components/computer-cabinets',
-      'Cooling': 'computers/computer-components/cpu-coolers',
+  private isPCComponent(title: string): boolean {
+    const pcKeywords = [
+      'processor', 'cpu', 'graphics card', 'gpu', 'motherboard', 'ram', 'memory',
+      'ssd', 'hdd', 'storage', 'power supply', 'psu', 'cabinet', 'case', 'cooler',
+      'intel', 'amd', 'nvidia', 'corsair', 'asus', 'msi', 'gigabyte', 'gaming',
+      'ryzen', 'core', 'geforce', 'radeon', 'ddr4', 'ddr5', 'nvme', 'sata',
+      'atx', 'micro atx', 'mini itx', 'water cooling', 'air cooling', 'thermal paste'
+    ];
+    
+    const titleLower = title.toLowerCase();
+    return pcKeywords.some(keyword => titleLower.includes(keyword));
+  }
+
+  private mapToFlipkartCategory(category: string): string {
+    const categoryMap: { [key: string]: string } = {
+      'CPU': 'computers',
+      'GPU': 'computers', 
+      'RAM': 'computers',
+      'Motherboard': 'computers',
+      'Storage': 'computers',
+      'PSU': 'computers',
+      'Case': 'computers',
+      'Cooling': 'computers',
     };
-    return categoryMap[category || ''];
+    
+    return categoryMap[category] || 'computers';
   }
 
   private extractCategory(title: string, flipkartCategory?: string): string {
@@ -285,10 +289,53 @@ class FlipkartAPIService {
     return 'limited';
   }
 
+  private parsePrice(priceString: string): number {
+    // Remove currency symbols and commas, extract number
+    const cleanPrice = priceString.replace(/[₹,\s]/g, '');
+    const price = parseFloat(cleanPrice);
+    return isNaN(price) ? 0 : price;
+  }
+
+  private parseDiscount(discountString: string): number {
+    // Extract percentage from strings like "25% off", "₹5,000 off", etc.
+    const percentMatch = discountString.match(/(\d+)%/);
+    if (percentMatch) {
+      return parseInt(percentMatch[1]);
+    }
+    
+    // For absolute discounts, we'll calculate percentage later if original price is available
+    return 0;
+  }
+
+  private extractBrand(title: string, brandField?: string): string {
+    // Use the brand field if available
+    if (brandField && brandField.trim()) {
+      return brandField.trim();
+    }
+
+    // Extract from title
+    const commonBrands = [
+      'AMD', 'Intel', 'NVIDIA', 'ASUS', 'MSI', 'Gigabyte', 'ASRock', 
+      'Corsair', 'G.Skill', 'Kingston', 'Samsung', 'Western Digital', 'WD',
+      'Seagate', 'Cooler Master', 'Thermaltake', 'NZXT', 'Fractal Design',
+      'Antec', 'be quiet!', 'Seasonic', 'EVGA', 'Zotac', 'Sapphire', 'XFX'
+    ];
+
+    for (const brand of commonBrands) {
+      if (title.toLowerCase().includes(brand.toLowerCase())) {
+        return brand;
+      }
+    }
+
+    // Fallback to first word
+    return title.split(' ')[0];
+  }
+
   private extractSpecifications(title: string, description: string): Record<string, any> {
     const specs: Record<string, any> = {};
     const text = `${title} ${description}`.toLowerCase();
     
+    // Extract common specs
     const ghzMatch = text.match(/(\d+\.?\d*)\s*ghz/i);
     if (ghzMatch) specs.clockSpeed = `${ghzMatch[1]} GHz`;
     
@@ -303,6 +350,12 @@ class FlipkartAPIService {
     
     const threadMatch = text.match(/(\d+)[-\s]?thread/i);
     if (threadMatch) specs.threads = parseInt(threadMatch[1]);
+
+    const storageMatch = text.match(/(\d+)\s*(gb|tb)\s*(ssd|hdd|nvme)/i);
+    if (storageMatch) {
+      specs.capacity = `${storageMatch[1]}${storageMatch[2].toUpperCase()}`;
+      specs.type = storageMatch[3].toUpperCase();
+    }
 
     return specs;
   }

@@ -290,7 +290,7 @@ const getStyles = (theme: any) => StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
     paddingTop: 16,
-    paddingBottom: 4,
+    paddingBottom: 16, // Increase bottom padding for better centering
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
     backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : '#f8fafc',
@@ -299,16 +299,23 @@ const getStyles = (theme: any) => StyleSheet.create({
     paddingHorizontal: 20,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
+    minHeight: 52, // Ensure minimum height for proper centering
   },
   shopText: {
     fontSize: 13,
     color: theme.isDark ? '#ffffff' : '#667eea',
     fontWeight: '600',
     marginRight: 8,
+    textAlign: 'center',
+    textAlignVertical: 'center', // Android specific
+    includeFontPadding: false, // Remove extra padding on Android
   },
   shopArrow: {
     fontSize: 16,
     color: theme.isDark ? '#ffffff' : '#667eea',
     fontWeight: 'bold',
+    textAlign: 'center',
+    textAlignVertical: 'center', // Android specific
+    includeFontPadding: false, // Remove extra padding on Android
   },
 });
