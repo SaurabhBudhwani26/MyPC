@@ -268,4 +268,5 @@ For technical support or questions about API usage, refer to the interactive doc
 
 ---
 
-**Ready to build some PCs!** 🖥️⚡
+**Ready to build some PCs!** 🖥️⚡  
+yes
